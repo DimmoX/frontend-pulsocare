@@ -1,0 +1,25 @@
+{
+    "workbench.colorCustomizations": {
+      "statusBar.noFolderBackground": "#0F3328",
+      "statusBar.noFolderForeground": "#F5FCFA",
+      "activityBar.background": "#0F3328",
+      "titleBar.activeBackground": "#164838",
+      "titleBar.activeForeground": "#F5FCFA",
+      "titleBar.inactiveBackground": "#0F3328",
+      "titleBar.inactiveForeground": "#F5FCFA",
+      "statusBar.background": "#0F3328",
+      "statusBar.foreground": "#F5FCFA",
+      "statusBar.debuggingBackground": "#0F3328",
+      "statusBar.debuggingForeground": "#F5FCFA"
+    },
+    "background.fullscreen": {
+        "images": [
+        "https://media.discordapp.net/attachments/1255270796004429824/1255271452421132381/Horimiya-10-33-1.jpg?ex=6a292c64&is=6a27dae4&hm=891d37c1dba8915f306c0b8ddd142c620dfd4f0c9ab5afe5ce23527fc41c7f10&=&format=webp"
+        ],
+        "opacity": 0.1,
+        "size": "cover",
+        "position": "center",
+        "interval": 0,
+        "random": false
+    }
+}
