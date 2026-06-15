@@ -1,4 +1,47 @@
-/* You can add global styles to this file, and also import other style files */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@source "./app/**/*.{html,ts}";
+
+@theme {
+  /* Surfaces - tonalidad celeste */
+  --color-bg: #EAF6FC;
+  --color-surface: #FFFFFF;
+  --color-surface-sunken: #DFF1FA;
+
+  /* Ink */
+  --color-ink: #15313E;
+  --color-ink-soft: #5C7E8C;
+  --color-ink-faint: #9BBBC8;
+
+  /* Brand - celeste */
+  --color-primary: #0EA5E9;
+  --color-primary-dark: #0369A1;
+  --color-primary-soft: #DDF1FC;
+
+  /* Acento "pulso" */
+  --color-pulse: #FF6B5B;
+  --color-pulse-soft: #FFE3DE;
+
+  /* Estados clínicos */
+  --color-status-ok: #1E9E5A;
+  --color-status-ok-soft: #E3F6EA;
+  --color-status-warn: #D99300;
+  --color-status-warn-soft: #FFF3D6;
+  --color-status-critical: #DC3B3B;
+  --color-status-critical-soft: #FCE4E2;
+
+  /* Bordes */
+  --color-border: #CDE8F5;
+
+  /* Tipografía */
+  --font-display: "Space Grotesk", "Inter", sans-serif;
+  --font-body: "Inter", "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "Menlo", monospace;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-body);
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+}
