@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { MsalGuard } from '@azure/msal-angular';
 import { Login } from './pages/login/login';
 import { RecuperarPassword } from './pages/recuperar-password/recuperar-password';
 import { CrearUsuario } from './pages/admin/crear-usuario/crear-usuario';
@@ -10,16 +11,31 @@ import { PacienteDetalle } from './pages/medico/paciente-detalle/paciente-detall
 export const routes: Routes = [
   { path: '', component: Login },
   { path: 'recuperar-password', component: RecuperarPassword },
-
-  { path: 'admin', redirectTo: 'admin/usuarios', pathMatch: 'full' },
-  { path: 'admin/usuarios', component: CrearUsuario },
-  { path: 'admin/usuarios/nuevo', redirectTo: 'admin/usuarios', pathMatch: 'full' },
-  { path: 'admin/pacientes', component: CrearPaciente },
-
-  { path: 'familiar/signos-vitales', component: SignosVitalesFamiliar },
-
-  { path: 'medico/pacientes', component: Pacientes },
-  { path: 'medico/pacientes/:id', component: PacienteDetalle },
-
+  {
+    path: 'admin',
+    canActivate: [MsalGuard],
+    children: [
+      { path: '', redirectTo: 'usuarios', pathMatch: 'full' },
+      { path: 'usuarios', component: CrearUsuario },
+      {path: 'pacientes', component: CrearPaciente }
+    ]
+  },
+  {
+    path: 'medico',
+    canActivate: [MsalGuard],
+    children: [
+      { path: '', redirectTo: 'pacientes', pathMatch: 'full' },
+      { path: 'pacientes', component: Pacientes },
+      { path: 'pacientes/:id', component: PacienteDetalle }
+    ]
+  },
+  {
+    path: 'familiar',
+    canActivate: [MsalGuard],
+    children: [
+      { path: '', redirectTo: 'signos-vitales', pathMatch: 'full' },
+      { path: 'signos-vitales', component: SignosVitalesFamiliar }
+    ]
+  },
   { path: '**', redirectTo: '' },
 ];

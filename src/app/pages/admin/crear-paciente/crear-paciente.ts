@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -134,7 +134,7 @@ const GENEROS: Genero[] = ['Femenino', 'Masculino', 'Otro'];
     </main>
   `,
 })
-export class CrearPaciente {
+export class CrearPaciente implements OnInit {
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private store = inject(AdminStore);
@@ -142,6 +142,7 @@ export class CrearPaciente {
   protected readonly generos = GENEROS;
 
   mensajeExito = signal('');
+  estaCargando = signal(false);
   pacientes = this.store.pacientes;
 
   form = this.fb.group({
@@ -152,28 +153,39 @@ export class CrearPaciente {
     genero: this.fb.control<Genero | ''>('', Validators.required),
   });
 
+  ngOnInit () {
+    this.store.cargarPacientes();
+  }
+
   mostrarError(control: keyof typeof this.form.controls): boolean {
     const c = this.form.controls[control];
     return c.touched && c.invalid;
   }
 
-  guardar() {
+  async guardar() {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
 
     const v = this.form.value;
-    this.store.crearPaciente({
-      nombre: v.nombre!,
-      apellidoPaterno: v.apellidoPaterno!,
-      apellidoMaterno: v.apellidoMaterno!,
-      edad: v.edad!,
-      genero: v.genero as Genero,
-    });
+    try {
+      await this.store.crearPaciente({
+        nombre: v.nombre!,
+        apellidoPaterno: v.apellidoPaterno!,
+        apellidoMaterno: v.apellidoMaterno!,
+        edad: v.edad!,
+        genero: v.genero as Genero,
+      });
 
-    this.mensajeExito.set('Se creó el paciente correctamente.');
-    this.form.reset({ genero: '' });
+      this.mensajeExito.set('Se creó el paciente correctamente.');
+      this.form.reset({ genero: '' });
+    } catch (error) {
+      console.error('Error al guardar el paciente:', error);
+    } finally {
+      this.estaCargando.set(false);
+    }
+
   }
 
   cerrarSesion() {

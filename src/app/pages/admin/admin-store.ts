@@ -1,16 +1,12 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import {
   Genero,
-  PACIENTES_REGISTRADOS,
   PacienteRegistrado,
   TipoUsuario,
-  USUARIOS_STAFF,
   UsuarioStaff,
 } from '../../data/mock-data';
-
-let contadorUsuarios = USUARIOS_STAFF.length;
-let contadorPacientes = PACIENTES_REGISTRADOS.length;
-
 export interface NuevoUsuarioInput {
   nombre: string;
   apellidoPaterno: string;
@@ -30,59 +26,87 @@ export interface NuevoPacienteInput {
 
 @Injectable({ providedIn: 'root' })
 export class AdminStore {
-  usuarios = signal<UsuarioStaff[]>([...USUARIOS_STAFF]);
-  pacientes = signal<PacienteRegistrado[]>([...PACIENTES_REGISTRADOS]);
+  private http = inject(HttpClient)
+  private apiUrl = 'http://localhost:8080/api';
 
-  crearUsuario(input: NuevoUsuarioInput): UsuarioStaff {
-    contadorUsuarios += 1;
-    const nuevo: UsuarioStaff = {
-      id: `u-${String(contadorUsuarios).padStart(3, '0')}`,
-      nombreCompleto: `${input.nombre} ${input.apellidoPaterno} ${input.apellidoMaterno}`,
-      correo: input.correo,
-      tipo: input.tipo,
-      parentesco: input.tipo === 'familiar' ? input.parentesco : undefined,
-      pacientesAsignados: [],
-    };
-    this.usuarios.update((lista) => [nuevo, ...lista]);
-    return nuevo;
+  usuarios = signal<UsuarioStaff[]>([]);
+  pacientes = signal<PacienteRegistrado[]>([]);
+
+  // ========================================================
+  // MÉTODOS DE CARGA INICIAL (GET)
+  // ========================================================
+
+  async cargarUsuarios(): Promise<void> {
+    try {
+      const data = await firstValueFrom(this.http.get<UsuarioStaff[]>(`${this.apiUrl}/admin/usuarios`));
+      this.usuarios.set(data)
+    } catch (error) {
+      console.error('Error al cargar pacientes: ', error);
+    }
   }
 
-  crearPaciente(input: NuevoPacienteInput): PacienteRegistrado {
-    contadorPacientes += 1;
-    const nuevo: PacienteRegistrado = {
-      id: `p-${String(contadorPacientes).padStart(3, '0')}`,
-      nombre: input.nombre,
-      apellidoPaterno: input.apellidoPaterno,
-      apellidoMaterno: input.apellidoMaterno,
-      edad: input.edad,
-      genero: input.genero,
-    };
-    this.pacientes.update((lista) => [nuevo, ...lista]);
-    return nuevo;
+  async cargarPacientes(): Promise<void> {
+    try {
+      const data = await firstValueFrom(this.http.get<PacienteRegistrado[]>(`${this.apiUrl}/admin/pacientes`));
+      this.pacientes.set(data)
+    } catch (error) {
+      console.error('Error al cargar usuarios: ', error);
+    }
   }
+
+  // ========================================================
+  // MÉTODOS DE CREACIÓN (POST)
+  // ========================================================
+
+  async crearUsuario(input: NuevoUsuarioInput): Promise<void> {
+    try {
+      const nuevoUsuario = await firstValueFrom(
+        this.http.post<UsuarioStaff>(`${this.apiUrl}/admin/usuario`, input)
+      );
+      this.usuarios.update((lista) => [nuevoUsuario, ...lista]);
+    } catch (error) {
+      console.error('Error al crear usuario en Spring Boot: ', error);
+      throw error;
+    }
+  }
+
+  async crearPaciente(input: NuevoPacienteInput): Promise<void> {
+    try {
+      const nuevoPaciente = await firstValueFrom(
+        this.http.post<PacienteRegistrado>(`${this.apiUrl}/admin/pacientes`, input)
+      );
+      this.pacientes.update((lista) => [nuevoPaciente, ...lista]);
+    } catch (error) {
+      console.error('Error al crear paciente en Spring Boot: ', error);
+      throw error;
+    }
+  }
+
+  // ========================================================
+  // MÉTODOS DE ASIGNACIÓN (POST / PUT)
+  // ========================================================
 
   /** Asigna o desasigna un paciente a un médico (permite varios pacientes por médico). */
-  alternarAsignacionMedico(usuarioId: string, pacienteId: string) {
+  async alternarAsignacionMedico(usuarioId: string, pacienteId: string): Promise<void> {
+    const usuarioActualizado = await firstValueFrom(
+      this.http.post<UsuarioStaff>(`${this.apiUrl}/admin/usuarios/${usuarioId}/pacientes/${pacienteId}/alternar`, {})
+    );
+
     this.usuarios.update((lista) =>
-      lista.map((u) => {
-        if (u.id !== usuarioId) return u;
-        const yaAsignado = u.pacientesAsignados.includes(pacienteId);
-        return {
-          ...u,
-          pacientesAsignados: yaAsignado
-            ? u.pacientesAsignados.filter((id: string) => id !== pacienteId)
-            : [...u.pacientesAsignados, pacienteId],
-        };
-      })
+      lista.map((u) => (u.id === usuarioId ? usuarioActualizado : u))
     );
   }
 
   /** Asigna un único paciente a un familiar (reemplaza la asignación previa). */
-  asignarPacienteAFamiliar(usuarioId: string, pacienteId: string | null) {
+  async asignarPacienteAFamiliar(usuarioId: string, pacienteId: string | null): Promise<void> {
+    const payload = { pacienteId: pacienteId };
+
+    const usuarioActualizado = await firstValueFrom(
+      this.http.put<UsuarioStaff>(`${this.apiUrl}/admin/usuarios/${usuarioId}/paciente`, payload)
+    );
+
     this.usuarios.update((lista) =>
-      lista.map((u) =>
-        u.id === usuarioId ? { ...u, pacientesAsignados: pacienteId ? [pacienteId] : [] } : u
-      )
+      lista.map((u) => (u.id === usuarioId ? usuarioActualizado : u))
     );
   }
 }

@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -215,7 +215,7 @@ const PARENTESCOS = ['Hijo/a', 'Esposo/a', 'Nieto/a', 'Hermano/a', 'Cuidador/a',
     </main>
   `,
 })
-export class CrearUsuario {
+export class CrearUsuario implements OnInit{
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private store = inject(AdminStore);
@@ -224,6 +224,7 @@ export class CrearUsuario {
 
   tipo = signal<TipoUsuario>('medico');
   mensajeExito = signal('');
+  estaCargando = signal(false);
 
   usuarios = this.store.usuarios;
   pacientes = this.store.pacientes;
@@ -237,6 +238,11 @@ export class CrearUsuario {
     correo: this.fb.control('', [Validators.required, Validators.email]),
     contrasena: this.fb.control('', [Validators.required, Validators.minLength(8)]),
   });
+
+  ngOnInit() {
+    this.store.cargarUsuarios();
+    this.store.cargarPacientes();
+  }
 
   seleccionarTipo(tipo: TipoUsuario) {
     this.tipo.set(tipo);
@@ -255,35 +261,52 @@ export class CrearUsuario {
     return c.touched && c.invalid;
   }
 
-  guardar() {
+  async guardar() {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
 
     const v = this.form.value;
-    this.store.crearUsuario({
-      nombre: v.nombre!,
-      apellidoPaterno: v.apellidoPaterno!,
-      apellidoMaterno: v.apellidoMaterno!,
-      tipo: this.tipo(),
-      parentesco: this.tipo() === 'familiar' ? v.parentesco! : undefined,
-      correo: v.correo!,
-    });
 
-    this.mensajeExito.set(
-      `Se creó el usuario de ${this.tipo() === 'medico' ? 'médico' : 'familiar'} correctamente.`
-    );
-    this.form.reset({ parentesco: '' });
+    try {
+      await this.store.crearUsuario({
+        nombre: v.nombre!,
+        apellidoPaterno: v.apellidoPaterno!,
+        apellidoMaterno: v.apellidoMaterno!,
+        tipo: this.tipo(),
+        parentesco: this.tipo() === 'familiar' ? v.parentesco! : undefined,
+        correo: v.correo!,
+      });
+
+      this.mensajeExito.set(
+        `Se creó el usuario de ${this.tipo() === 'medico' ? 'médico' : 'familiar'} correctamente.`
+      );
+      this.form.reset({ parentesco: '' });
+    } catch (error) {
+      console.error('Error al guardar el usuario:', error);
+    } finally {
+      this.estaCargando.set(false);
+    }
   }
 
-  alternarMedico(usuario: UsuarioStaff, pacienteId: string) {
-    this.store.alternarAsignacionMedico(usuario.id, pacienteId);
+  async alternarMedico(usuario: UsuarioStaff, pacienteId: string) {
+    try {
+      await this.store.alternarAsignacionMedico(usuario.id, pacienteId);
+    } catch (error) {
+      console.error('Error al guardar el usuario:', error);
+    } finally {
+      this.estaCargando.set(false);
+    }
   }
 
-  asignarFamiliar(usuario: UsuarioStaff, evento: Event) {
+  async asignarFamiliar(usuario: UsuarioStaff, evento: Event) {
     const valor = (evento.target as HTMLSelectElement).value;
-    this.store.asignarPacienteAFamiliar(usuario.id, valor || null);
+    try {
+      await this.store.asignarPacienteAFamiliar(usuario.id, valor || null);
+    } catch (error) {
+      console.error('Error al asignar paciente a familiar:', error);
+    }
   }
 
   cerrarSesion() {
