@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { MsalBroadcastService, MsalService } from '@azure/msal-angular';
-import { EventMessage, EventType, AuthenticationResult } from '@azure/msal-browser';
+import { EventMessage, EventType, AuthenticationResult, AuthError } from '@azure/msal-browser';
 import { filter } from 'rxjs';
 
 @Component({
@@ -15,10 +15,25 @@ export class App implements OnInit {
   private authService = inject(MsalService);
   private router = inject(Router);
 
+  private passwordResetAuthority = 'https://pulsocareduoc.b2clogin.com/pulsocareduoc.onmicrosoft.com/B2C_1_PASS_RESET';
+
   ngOnInit(): void {
     this.authService.initialize().subscribe(() => {
 
-      this.authService.handleRedirectObservable().subscribe();
+      this.authService.handleRedirectObservable().subscribe({
+        next: () => {},
+        error: (error: any) => {
+          // Si el usuario hizo clic en "¿Olvidó su contraseña?"
+          if (error && error.message && error.message.includes('AADB2C90118')) {
+            console.log('Atrapado click de reseteo. Redirigiendo al flujo...');
+
+            this.authService.loginRedirect({
+              authority: this.passwordResetAuthority,
+              scopes: ['openid']
+            });
+          }
+        }
+      });
 
       this.msalBroadcastService.msalSubject$
         .pipe(
