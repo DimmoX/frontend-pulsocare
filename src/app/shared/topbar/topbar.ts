@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideArrowLeft, lucideHeartPulse, lucideLogOut } from '@ng-icons/lucide';
 import { EcgTrace } from '../ecg-trace/ecg-trace';
+import { MsalService } from '@azure/msal-angular';
 
 @Component({
   selector: 'app-topbar',
@@ -41,7 +42,7 @@ import { EcgTrace } from '../ecg-trace/ecg-trace';
         <button
           type="button"
           class="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--color-ink-soft)] bg-[var(--color-surface-sunken)] border border-[var(--color-border)] rounded-xl px-3.5 py-2 cursor-pointer transition-colors hover:text-[var(--color-status-critical)] hover:border-[var(--color-status-critical)]/40"
-          (click)="cerrarSesion.emit()"
+          (click)="cierreSesion()"
         >
           <ng-icon name="lucideLogOut" size="16" />
           Salir
@@ -59,9 +60,18 @@ export class Topbar {
 
   cerrarSesion = output<void>();
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private authService: MsalService
+  ) {}
 
   onVolver() {
     this.router.navigate(['..']);
+  }
+
+  cierreSesion() {
+    this.authService.logoutRedirect({
+      postLogoutRedirectUri: 'http://localhost:4200'
+    });
   }
 }
