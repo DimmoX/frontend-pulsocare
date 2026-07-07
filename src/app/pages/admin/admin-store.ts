@@ -1,6 +1,7 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import {
   Genero,
   PacienteRegistrado,
@@ -27,7 +28,7 @@ export interface NuevoPacienteInput {
 @Injectable({ providedIn: 'root' })
 export class AdminStore {
   private http = inject(HttpClient)
-  private apiUrl = 'http://localhost:8080/api';
+  private apiUrl = environment.apiUrl;
 
   usuarios = signal<UsuarioStaff[]>([]);
   pacientes = signal<PacienteRegistrado[]>([]);
