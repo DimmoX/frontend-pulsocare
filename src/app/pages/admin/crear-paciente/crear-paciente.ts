@@ -149,8 +149,10 @@ export class CrearPaciente implements OnInit {
     nombre: this.fb.control('', Validators.required),
     apellidoPaterno: this.fb.control('', Validators.required),
     apellidoMaterno: this.fb.control('', Validators.required),
-    edad: this.fb.control<number | null>(null, [Validators.required, Validators.min(0), Validators.max(120)]),
-    genero: this.fb.control<Genero | ''>('', Validators.required),
+    fechaNacimiento: this.fb.control('', Validators.required), // <input type="date">
+    sexo: this.fb.control<'M' | 'F' | ''>('', Validators.required),
+    idModalidad: this.fb.control<number | null>(1),
+    idEstadoPaciente: this.fb.control<number | null>(1),
   });
 
   ngOnInit () {
@@ -167,25 +169,18 @@ export class CrearPaciente implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
-
     const v = this.form.value;
-    try {
-      await this.store.crearPaciente({
-        nombre: v.nombre!,
-        apellidoPaterno: v.apellidoPaterno!,
-        apellidoMaterno: v.apellidoMaterno!,
-        edad: v.edad!,
-        genero: v.genero as Genero,
-      });
-
-      this.mensajeExito.set('Se creó el paciente correctamente.');
-      this.form.reset({ genero: '' });
-    } catch (error) {
-      console.error('Error al guardar el paciente:', error);
-    } finally {
-      this.estaCargando.set(false);
-    }
-
+    await this.store.crearPaciente({
+      nombre: v.nombre!,
+      apellidoPaterno: v.apellidoPaterno!,
+      apellidoMaterno: v.apellidoMaterno!,
+      fechaNacimiento: v.fechaNacimiento!,
+      sexo: v.sexo!,
+      idModalidad: v.idModalidad!,
+      idEstadoPaciente: v.idEstadoPaciente!,
+    });
+    this.mensajeExito.set('Se creó el paciente correctamente.');
+    this.form.reset();
   }
 
   cerrarSesion() {

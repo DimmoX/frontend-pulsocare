@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -9,12 +9,13 @@ import {
   lucideUserPlus,
   lucideUsersRound,
 } from '@ng-icons/lucide';
-import { TipoUsuario, UsuarioStaff } from '../../../data/mock-data';
 import { Topbar } from '../../../shared/topbar/topbar';
 import { AdminStore } from '../admin-store';
 import { AdminTabs } from '../admin-tabs/admin-tabs';
+import { PARENTESCOS, claveDesdeNombreRol } from '../../../core/auth/roles.config';
+import { UsuarioDTO } from '../../../core/models/usuario.dto';
 
-const PARENTESCOS = ['Hijo/a', 'Esposo/a', 'Nieto/a', 'Hermano/a', 'Cuidador/a', 'Otro'];
+type TipoUsuarioFormulario = 'medico' | 'familiar';
 
 @Component({
   selector: 'app-crear-usuario',
@@ -80,37 +81,6 @@ const PARENTESCOS = ['Hijo/a', 'Esposo/a', 'Nieto/a', 'Hermano/a', 'Cuidador/a',
               }
             </label>
 
-            <label class="flex flex-col gap-1.5">
-              <span class="text-sm font-semibold text-[var(--color-ink)]">Apellido materno</span>
-              <input class="px-3.5 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-ink)] bg-[var(--color-surface)] font-body focus:outline-none focus:border-[var(--color-primary)]" type="text" formControlName="apellidoMaterno" placeholder="Pérez" />
-              @if (mostrarError('apellidoMaterno')) {
-                <span class="text-xs text-[var(--color-status-critical)]">Este campo es obligatorio.</span>
-              }
-            </label>
-
-            <label class="flex flex-col gap-1.5">
-              <span class="text-sm font-semibold text-[var(--color-ink)]">Fecha de nacimiento</span>
-              <input class="px-3.5 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-ink)] bg-[var(--color-surface)] font-body focus:outline-none focus:border-[var(--color-primary)]" type="date" formControlName="fechaNacimiento" />
-              @if (mostrarError('fechaNacimiento')) {
-                <span class="text-xs text-[var(--color-status-critical)]">Este campo es obligatorio.</span>
-              }
-            </label>
-
-            @if (tipo() === 'familiar') {
-              <label class="flex flex-col gap-1.5 sm:col-span-2">
-                <span class="text-sm font-semibold text-[var(--color-ink)]">Parentesco con el paciente</span>
-                <select class="px-3.5 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-ink)] bg-[var(--color-surface)] font-body focus:outline-none focus:border-[var(--color-primary)]" formControlName="parentesco">
-                  <option value="" disabled>Selecciona una opción</option>
-                  @for (opcion of parentescos; track opcion) {
-                    <option [value]="opcion">{{ opcion }}</option>
-                  }
-                </select>
-                @if (mostrarError('parentesco')) {
-                  <span class="text-xs text-[var(--color-status-critical)]">Selecciona el parentesco.</span>
-                }
-              </label>
-            }
-
             <label class="flex flex-col gap-1.5 sm:col-span-2">
               <span class="text-sm font-semibold text-[var(--color-ink)]">Correo electrónico</span>
               <input class="px-3.5 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-ink)] bg-[var(--color-surface)] font-body focus:outline-none focus:border-[var(--color-primary)]" type="email" formControlName="correo" placeholder="usuario@pulsocare.cl" />
@@ -119,20 +89,32 @@ const PARENTESCOS = ['Hijo/a', 'Esposo/a', 'Nieto/a', 'Hermano/a', 'Cuidador/a',
               }
             </label>
 
-            <label class="flex flex-col gap-1.5 sm:col-span-2">
-              <span class="text-sm font-semibold text-[var(--color-ink)]">Contraseña temporal</span>
-              <input class="px-3.5 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-ink)] bg-[var(--color-surface)] font-body focus:outline-none focus:border-[var(--color-primary)]" type="password" formControlName="contrasena" placeholder="Mínimo 8 caracteres" />
-              @if (mostrarError('contrasena')) {
-                <span class="text-xs text-[var(--color-status-critical)]">Debe tener al menos 8 caracteres.</span>
-              }
-            </label>
+            @if (tipo() === 'familiar') {
+              <label class="flex flex-col gap-1.5 sm:col-span-2">
+                <span class="text-sm font-semibold text-[var(--color-ink)]">Parentesco con el paciente</span>
+                <select class="px-3.5 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-ink)] bg-[var(--color-surface)] font-body focus:outline-none focus:border-[var(--color-primary)]" formControlName="idParentesco">
+                  <option [ngValue]="null" disabled>Selecciona una opción</option>
+                  @for (p of parentescos; track p.id) {
+                    <option [ngValue]="p.id">{{ p.nombre }}</option>
+                  }
+                </select>
+                @if (mostrarError('idParentesco')) {
+                  <span class="text-xs text-[var(--color-status-critical)]">Selecciona el parentesco.</span>
+                }
+              </label>
+            }
           </div>
 
+          <p class="mt-4 text-xs text-[var(--color-ink-soft)]">
+            No se pide contraseña: esta persona inicia sesión con su cuenta de Microsoft (Entra ID).
+            Al crearla aquí solo queda pre-registrada con su correo y su rol.
+          </p>
+
           <div class="flex justify-end gap-3 mt-6">
-            <button type="button" class="px-4.5 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-ink-soft)] text-sm font-semibold cursor-pointer" (click)="form.reset({ parentesco: '' })">
+            <button type="button" class="px-4.5 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-ink-soft)] text-sm font-semibold cursor-pointer" (click)="form.reset({ idParentesco: null })">
               Limpiar formulario
             </button>
-            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border-none bg-[var(--color-primary)] text-white text-sm font-semibold cursor-pointer transition-colors hover:bg-[var(--color-primary-dark)]">
+            <button type="submit" [disabled]="estaCargando()" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border-none bg-[var(--color-primary)] text-white text-sm font-semibold cursor-pointer transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-60 disabled:cursor-not-allowed">
               <ng-icon name="lucideUserPlus" size="18" />
               Crear usuario
             </button>
@@ -154,58 +136,31 @@ const PARENTESCOS = ['Hijo/a', 'Esposo/a', 'Nieto/a', 'Hermano/a', 'Cuidador/a',
           <p class="text-sm text-[var(--color-ink-soft)]">Aún no se han creado usuarios.</p>
         } @else {
           <ul class="flex flex-col gap-3 list-none m-0 p-0">
-            @for (u of usuarios(); track u.id) {
+            @for (u of usuarios(); track u.idUsuario) {
               <li class="border border-[var(--color-border)] rounded-2xl p-4">
                 <div class="flex items-center gap-3">
                   <span
                     class="flex items-center justify-center w-9 h-9 rounded-xl shrink-0"
-                    [class]="u.tipo === 'medico'
+                    [class]="esMedico(u)
                       ? 'bg-[var(--color-primary-soft)] text-[var(--color-primary-dark)]'
                       : 'bg-[var(--color-pulse-soft)] text-[var(--color-pulse)]'"
                   >
-                    <ng-icon [name]="u.tipo === 'medico' ? 'lucideStethoscope' : 'lucideUsersRound'" size="16" />
+                    <ng-icon [name]="esMedico(u) ? 'lucideStethoscope' : 'lucideUsersRound'" size="16" />
                   </span>
                   <div class="flex flex-col gap-0.5 min-w-0">
-                    <span class="font-semibold text-sm text-[var(--color-ink)] truncate">{{ u.nombreCompleto }}</span>
-                    <span class="text-xs text-[var(--color-ink-soft)] truncate">
-                      {{ u.correo }} · {{ u.tipo === 'medico' ? 'Médico' : 'Familiar · ' + u.parentesco }}
-                    </span>
+                    <span class="font-semibold text-sm text-[var(--color-ink)] truncate">{{ u.nombre }} {{ u.apellidoPaterno }}</span>
+                    <span class="text-xs text-[var(--color-ink-soft)] truncate">{{ u.correo }} · {{ u.rol }}</span>
                   </div>
                 </div>
 
                 <div class="mt-3 pt-3 border-t border-[var(--color-border)]">
-                  <p class="m-0 mb-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-ink-soft)] uppercase tracking-wide">
+                  <p class="m-0 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-ink-soft)] uppercase tracking-wide">
                     <ng-icon name="lucideLink" size="13" />
-                    {{ u.tipo === 'medico' ? 'Pacientes asignados' : 'Paciente asignado' }}
+                    Asignación de pacientes
                   </p>
-
-                  @if (u.tipo === 'medico') {
-                    <div class="flex flex-wrap gap-1.5">
-                      @for (p of pacientes(); track p.id) {
-                        <button
-                          type="button"
-                          class="px-2.5 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-all"
-                          [class]="u.pacientesAsignados.includes(p.id)
-                            ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-[var(--color-primary-dark)]'
-                            : 'border-[var(--color-border)] bg-[var(--color-surface-sunken)] text-[var(--color-ink-soft)]'"
-                          (click)="alternarMedico(u, p.id)"
-                        >
-                          {{ p.nombre }} {{ p.apellidoPaterno }}
-                        </button>
-                      }
-                    </div>
-                  } @else {
-                    <select
-                      class="w-full px-3 py-2 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-ink)] bg-[var(--color-surface)] font-body focus:outline-none focus:border-[var(--color-primary)]"
-                      [value]="u.pacientesAsignados.length > 0 ? u.pacientesAsignados[0] : ''"
-                      (change)="asignarFamiliar(u, $event)"
-                    >
-                      <option value="">Sin paciente asignado</option>
-                      @for (p of pacientes(); track p.id) {
-                        <option [value]="p.id">{{ p.nombre }} {{ p.apellidoPaterno }} {{ p.apellidoMaterno }}</option>
-                      }
-                    </select>
-                  }
+                  <p class="mt-1 text-xs text-[var(--color-ink-soft)]">
+                    Pendiente: el backend aún no expone un endpoint para asociar pacientes a este usuario.
+                  </p>
                 </div>
               </li>
             }
@@ -215,45 +170,44 @@ const PARENTESCOS = ['Hijo/a', 'Esposo/a', 'Nieto/a', 'Hermano/a', 'Cuidador/a',
     </main>
   `,
 })
-export class CrearUsuario implements OnInit{
+export class CrearUsuario implements OnInit {
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private store = inject(AdminStore);
 
   protected readonly parentescos = PARENTESCOS;
 
-  tipo = signal<TipoUsuario>('medico');
+  tipo = signal<TipoUsuarioFormulario>('medico');
   mensajeExito = signal('');
   estaCargando = signal(false);
 
   usuarios = this.store.usuarios;
-  pacientes = this.store.pacientes;
 
   form = this.fb.group({
     nombre: this.fb.control('', Validators.required),
     apellidoPaterno: this.fb.control('', Validators.required),
-    apellidoMaterno: this.fb.control('', Validators.required),
-    fechaNacimiento: this.fb.control('', Validators.required),
-    parentesco: this.fb.control(''),
     correo: this.fb.control('', [Validators.required, Validators.email]),
-    contrasena: this.fb.control('', [Validators.required, Validators.minLength(8)]),
+    idParentesco: this.fb.control<number | null>(null),
   });
 
   ngOnInit() {
     this.store.cargarUsuarios();
-    this.store.cargarPacientes();
   }
 
-  seleccionarTipo(tipo: TipoUsuario) {
+  esMedico(u: UsuarioDTO): boolean {
+    return claveDesdeNombreRol(u.rol) === 'MEDICO';
+  }
+
+  seleccionarTipo(tipo: TipoUsuarioFormulario) {
     this.tipo.set(tipo);
-    const parentesco = this.form.controls.parentesco;
+    const idParentesco = this.form.controls.idParentesco;
     if (tipo === 'familiar') {
-      parentesco.setValidators(Validators.required);
+      idParentesco.setValidators(Validators.required);
     } else {
-      parentesco.clearValidators();
-      parentesco.setValue('');
+      idParentesco.clearValidators();
+      idParentesco.setValue(null);
     }
-    parentesco.updateValueAndValidity();
+    idParentesco.updateValueAndValidity();
   }
 
   mostrarError(control: keyof typeof this.form.controls): boolean {
@@ -268,44 +222,24 @@ export class CrearUsuario implements OnInit{
     }
 
     const v = this.form.value;
+    this.estaCargando.set(true);
 
     try {
       await this.store.crearUsuario({
-        nombre: v.nombre!,
-        apellidoPaterno: v.apellidoPaterno!,
-        apellidoMaterno: v.apellidoMaterno!,
-        tipo: this.tipo(),
-        parentesco: this.tipo() === 'familiar' ? v.parentesco! : undefined,
+        nombreCompleto: `${v.nombre} ${v.apellidoPaterno}`,
         correo: v.correo!,
+        tipo: this.tipo() === 'medico' ? 'MEDICO' : 'FAMILIAR',
+        idParentesco: this.tipo() === 'familiar' ? v.idParentesco ?? undefined : undefined,
       });
 
       this.mensajeExito.set(
         `Se creó el usuario de ${this.tipo() === 'medico' ? 'médico' : 'familiar'} correctamente.`
       );
-      this.form.reset({ parentesco: '' });
+      this.form.reset({ idParentesco: null });
     } catch (error) {
-      console.error('Error al guardar el usuario:', error);
+      console.error('Error al crear el usuario:', error);
     } finally {
       this.estaCargando.set(false);
-    }
-  }
-
-  async alternarMedico(usuario: UsuarioStaff, pacienteId: string) {
-    try {
-      await this.store.alternarAsignacionMedico(usuario.id, pacienteId);
-    } catch (error) {
-      console.error('Error al guardar el usuario:', error);
-    } finally {
-      this.estaCargando.set(false);
-    }
-  }
-
-  async asignarFamiliar(usuario: UsuarioStaff, evento: Event) {
-    const valor = (evento.target as HTMLSelectElement).value;
-    try {
-      await this.store.asignarPacienteAFamiliar(usuario.id, valor || null);
-    } catch (error) {
-      console.error('Error al asignar paciente a familiar:', error);
     }
   }
 
