@@ -4,6 +4,8 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ROL_A_ID_ROL, RolClave } from '../../core/auth/roles.config';
 import { UsuarioDTO } from '../../core/models/usuario.dto';
+import { CrearPacienteInput, PacienteDTO } from '../../core/models/paciente.dto';
+import { CuidadorDTO } from '../../core/models/asignacion.dto';
 
 export interface NuevoUsuarioInput {
   nombreCompleto: string;
@@ -20,6 +22,8 @@ export class AdminStore {
   usuarios = signal<UsuarioDTO[]>([]);
   pacientes = signal<any[]>([]);
 
+  pacientesPorUsuario = signal<Record<number, PacienteDTO[]>>({});
+
   // ========================================================
   // MÉTODOS DE CARGA INICIAL (GET)
   // ========================================================
@@ -28,6 +32,7 @@ export class AdminStore {
     try {
       const data = await firstValueFrom(this.http.get<UsuarioDTO[]>(`${this.apiUrl}/auth/usuarios`));
       this.usuarios.set(data)
+      await Promise.all(data.map((u) => this.cargarPacientesDeUsuario(u.idUsuario)));
     } catch (error) {
       console.error('Error al cargar usuarios: ', error);
     }
@@ -39,6 +44,17 @@ export class AdminStore {
       this.pacientes.set(data)
     } catch (error) {
       console.error('Error al cargar pacientes: ', error);
+    }
+  }
+
+  async cargarPacientesDeUsuario(idUsuario: number): Promise<void> {
+    try {
+      const data = await firstValueFrom(
+        this.http.get<PacienteDTO[]>(`${this.apiUrl}/usuarios/${idUsuario}/pacientes`)
+      );
+      this.pacientesPorUsuario.update((mapa) => ({ ...mapa, [idUsuario]: data }));
+    } catch (error) {
+      console.error(`Error al cargar los pacientes del usuario ${idUsuario}: `, error);
     }
   }
 
@@ -65,10 +81,10 @@ export class AdminStore {
     }
   }
 
-  async crearPaciente(input: any): Promise<void> {
+  async crearPaciente(input: CrearPacienteInput): Promise<void> {
     try {
       const nuevoPaciente = await firstValueFrom(
-        this.http.post<any>(`${this.apiUrl}/pacientes`, input)
+        this.http.post<PacienteDTO>(`${this.apiUrl}/pacientes`, input)
       );
       this.pacientes.update((lista) => [nuevoPaciente, ...lista]);
     } catch (error) {
@@ -81,11 +97,23 @@ export class AdminStore {
   // MÉTODOS DE ASIGNACIÓN (POST / PUT) [PENDIENTE DE IMPLEMENTAR EN BACKEND]
   // ========================================================
 
-  async alternarAsignacionMedico(): Promise<never> {
-    throw new Error('Falta implementar en el backend: POST /api/pacientes/{id}/asignaciones');
+  async asignarPaciente(idPaciente: number, idUsuario: number): Promise<void> {
+    await firstValueFrom(
+      this.http.post(`${this.apiUrl}/pacientes/${idPaciente}/asignaciones`, { idUsuario })
+    );
+    await this.cargarPacientesDeUsuario(idUsuario);
   }
 
-  async asignarPacienteAFamiliar(): Promise<never> {
-    throw new Error('Falta implementar en el backend: PUT /api/pacientes/{id}/asignaciones');
+  async quitarAsignacion(idPaciente: number, idUsuario: number): Promise<void> {
+    await firstValueFrom(
+      this.http.delete(`${this.apiUrl}/pacientes/${idPaciente}/asignaciones/${idUsuario}`)
+    );
+    await this.cargarPacientesDeUsuario(idUsuario);
+  }
+
+  async cargarCuidadoresDePaciente(idPaciente: number): Promise<CuidadorDTO[]> {
+    return firstValueFrom(
+      this.http.get<CuidadorDTO[]>(`${this.apiUrl}/pacientes/${idPaciente}/asignaciones`)
+    );
   }
 }

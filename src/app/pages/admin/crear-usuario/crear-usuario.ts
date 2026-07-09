@@ -14,6 +14,7 @@ import { AdminStore } from '../admin-store';
 import { AdminTabs } from '../admin-tabs/admin-tabs';
 import { PARENTESCOS, claveDesdeNombreRol } from '../../../core/auth/roles.config';
 import { UsuarioDTO } from '../../../core/models/usuario.dto';
+import { PacienteDTO } from '../../../core/models/paciente.dto';
 
 type TipoUsuarioFormulario = 'medico' | 'familiar';
 
@@ -132,6 +133,10 @@ type TipoUsuarioFormulario = 'medico' | 'familiar';
       <section class="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-7">
         <h2 class="font-display text-base font-semibold m-0 mb-4 text-[var(--color-ink)]">Médicos y familiares registrados</h2>
 
+        @if (errorAsignacion()) {
+          <p class="mb-3 text-xs font-semibold text-[var(--color-status-critical)]">{{ errorAsignacion() }}</p>
+        }
+
         @if (usuarios().length === 0) {
           <p class="text-sm text-[var(--color-ink-soft)]">Aún no se han creado usuarios.</p>
         } @else {
@@ -156,11 +161,46 @@ type TipoUsuarioFormulario = 'medico' | 'familiar';
                 <div class="mt-3 pt-3 border-t border-[var(--color-border)]">
                   <p class="m-0 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-ink-soft)] uppercase tracking-wide">
                     <ng-icon name="lucideLink" size="13" />
-                    Asignación de pacientes
+                    Pacientes a cargo
                   </p>
-                  <p class="mt-1 text-xs text-[var(--color-ink-soft)]">
-                    Pendiente: el backend aún no expone un endpoint para asociar pacientes a este usuario.
-                  </p>
+
+                  @if (pacientesAsignados(u.idUsuario).length === 0) {
+                    <p class="mt-1 text-xs text-[var(--color-ink-soft)]">Sin pacientes asignados todavía.</p>
+                  } @else {
+                    <ul class="mt-2 flex flex-col gap-1.5 list-none m-0 p-0">
+                      @for (p of pacientesAsignados(u.idUsuario); track p.idPaciente) {
+                        <li class="flex items-center justify-between gap-2 text-xs">
+                          <span class="text-[var(--color-ink)]">{{ p.nombre }} {{ p.apellidoPaterno }}</span>
+                          <button
+                            type="button"
+                            class="text-[var(--color-status-critical)] font-semibold cursor-pointer bg-transparent border-none px-1"
+                            (click)="quitar(u.idUsuario, p.idPaciente)"
+                          >
+                            Quitar
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  }
+
+                  @if (pacientesDisponibles(u.idUsuario).length > 0) {
+                    <div class="mt-2.5 flex gap-2">
+                      <select #selNuevoPaciente class="flex-1 px-2.5 py-1.5 rounded-lg border border-[var(--color-border)] text-xs bg-[var(--color-surface)] text-[var(--color-ink)]">
+                        @for (p of pacientesDisponibles(u.idUsuario); track p.idPaciente) {
+                          <option [value]="p.idPaciente">{{ p.nombre }} {{ p.apellidoPaterno }}</option>
+                        }
+                      </select>
+                      <button
+                        type="button"
+                        class="px-3 py-1.5 rounded-lg border-none bg-[var(--color-primary)] text-white text-xs font-semibold cursor-pointer"
+                        (click)="asignar(u.idUsuario, selNuevoPaciente.value)"
+                      >
+                        Asignar
+                      </button>
+                    </div>
+                  } @else if (pacientes().length === 0) {
+                    <p class="mt-2 text-xs text-[var(--color-ink-soft)]">Aún no hay pacientes registrados para asignar.</p>
+                  }
                 </div>
               </li>
             }
@@ -180,8 +220,10 @@ export class CrearUsuario implements OnInit {
   tipo = signal<TipoUsuarioFormulario>('medico');
   mensajeExito = signal('');
   estaCargando = signal(false);
+  errorAsignacion = signal<string | null>(null);
 
   usuarios = this.store.usuarios;
+  pacientes = this.store.pacientes;
 
   form = this.fb.group({
     nombre: this.fb.control('', Validators.required),
@@ -192,10 +234,48 @@ export class CrearUsuario implements OnInit {
 
   ngOnInit() {
     this.store.cargarUsuarios();
+    this.store.cargarPacientes();
   }
 
   esMedico(u: UsuarioDTO): boolean {
     return claveDesdeNombreRol(u.rol) === 'MEDICO';
+  }
+
+  pacientesAsignados(idUsuario: number): PacienteDTO[] {
+    return this.store.pacientesPorUsuario()[idUsuario] ?? [];
+  }
+
+  pacientesDisponibles(idUsuario: number): PacienteDTO[] {
+    const asignadosIds = new Set(this.pacientesAsignados(idUsuario).map((p) => p.idPaciente));
+    return this.pacientes().filter((p) => !asignadosIds.has(p.idPaciente));
+  }
+
+  async asignar(idUsuario: number, idPacienteTexto: string) {
+    const idPaciente = Number(idPacienteTexto);
+    if (!idPaciente) return;
+
+    this.errorAsignacion.set(null);
+    try {
+      await this.store.asignarPaciente(idPaciente, idUsuario);
+    } catch (error) {
+      this.errorAsignacion.set(this.mensajeDeError(error));
+    }
+  }
+
+  async quitar(idUsuario: number, idPaciente: number) {
+    this.errorAsignacion.set(null);
+    try {
+      await this.store.quitarAsignacion(idPaciente, idUsuario);
+    } catch (error) {
+      this.errorAsignacion.set(this.mensajeDeError(error));
+    }
+  }
+
+  private mensajeDeError(error: unknown): string {
+    const status = (error as { status?: number })?.status;
+    if (status === 409) return 'Ese paciente ya estaba asignado a este usuario.';
+    if (status === 404) return 'No se encontró el paciente o la asignación indicada.';
+    return 'No se pudo completar la operación. Intenta nuevamente.';
   }
 
   seleccionarTipo(tipo: TipoUsuarioFormulario) {

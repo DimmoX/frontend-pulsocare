@@ -3,12 +3,15 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCheck, lucideHeartHandshake, lucideUserRound } from '@ng-icons/lucide';
-import { Genero } from '../../../data/mock-data';
 import { Topbar } from '../../../shared/topbar/topbar';
 import { AdminStore } from '../admin-store';
 import { AdminTabs } from '../admin-tabs/admin-tabs';
+import { edadDesdeFechaNacimiento, generoDesdeSexo, PacienteDTO } from '../../../core/models/paciente.dto';
 
-const GENEROS: Genero[] = ['Femenino', 'Masculino', 'Otro'];
+const SEXOS: { valor: 'M' | 'F'; etiqueta: string }[] = [
+  { valor: 'M', etiqueta: 'Masculino' },
+  { valor: 'F', etiqueta: 'Femenino' },
+];
 
 @Component({
   selector: 'app-crear-paciente',
@@ -63,32 +66,32 @@ const GENEROS: Genero[] = ['Femenino', 'Masculino', 'Otro'];
             </label>
 
             <label class="flex flex-col gap-1.5">
-              <span class="text-sm font-semibold text-[var(--color-ink)]">Edad</span>
-              <input class="px-3.5 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-ink)] bg-[var(--color-surface)] font-body focus:outline-none focus:border-[var(--color-primary)]" type="number" min="0" max="120" formControlName="edad" placeholder="78" />
-              @if (mostrarError('edad')) {
-                <span class="text-xs text-[var(--color-status-critical)]">Ingresa una edad válida.</span>
+              <span class="text-sm font-semibold text-[var(--color-ink)]">Fecha de nacimiento</span>
+              <input class="px-3.5 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-ink)] bg-[var(--color-surface)] font-body focus:outline-none focus:border-[var(--color-primary)]" type="date" formControlName="fechaNacimiento" />
+              @if (mostrarError('fechaNacimiento')) {
+                <span class="text-xs text-[var(--color-status-critical)]">Selecciona la fecha de nacimiento.</span>
               }
             </label>
 
             <label class="flex flex-col gap-1.5">
-              <span class="text-sm font-semibold text-[var(--color-ink)]">Género</span>
-              <select class="px-3.5 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-ink)] bg-[var(--color-surface)] font-body focus:outline-none focus:border-[var(--color-primary)]" formControlName="genero">
+              <span class="text-sm font-semibold text-[var(--color-ink)]">Sexo</span>
+              <select class="px-3.5 py-2.5 rounded-xl border border-[var(--color-border)] text-sm text-[var(--color-ink)] bg-[var(--color-surface)] font-body focus:outline-none focus:border-[var(--color-primary)]" formControlName="sexo">
                 <option value="" disabled>Selecciona una opción</option>
-                @for (g of generos; track g) {
-                  <option [value]="g">{{ g }}</option>
+                @for (s of sexos; track s.valor) {
+                  <option [value]="s.valor">{{ s.etiqueta }}</option>
                 }
               </select>
-              @if (mostrarError('genero')) {
-                <span class="text-xs text-[var(--color-status-critical)]">Selecciona el género.</span>
+              @if (mostrarError('sexo')) {
+                <span class="text-xs text-[var(--color-status-critical)]">Selecciona el sexo.</span>
               }
             </label>
           </div>
 
           <div class="flex justify-end gap-3 mt-6">
-            <button type="button" class="px-4.5 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-ink-soft)] text-sm font-semibold cursor-pointer" (click)="form.reset({ genero: '' })">
+            <button type="button" class="px-4.5 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-ink-soft)] text-sm font-semibold cursor-pointer" (click)="form.reset({ sexo: '', idModalidad: 1, idEstadoPaciente: 1 })">
               Limpiar formulario
             </button>
-            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border-none bg-[var(--color-primary)] text-white text-sm font-semibold cursor-pointer transition-colors hover:bg-[var(--color-primary-dark)]">
+            <button type="submit" [disabled]="estaCargando()" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border-none bg-[var(--color-primary)] text-white text-sm font-semibold cursor-pointer transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-60 disabled:cursor-not-allowed">
               <ng-icon name="lucideUserRound" size="18" />
               Crear paciente
             </button>
@@ -110,7 +113,7 @@ const GENEROS: Genero[] = ['Femenino', 'Masculino', 'Otro'];
           <p class="text-sm text-[var(--color-ink-soft)]">Aún no se han registrado pacientes.</p>
         } @else {
           <ul class="flex flex-col gap-3 list-none m-0 p-0">
-            @for (p of pacientes(); track p.id) {
+            @for (p of pacientes(); track p.idPaciente) {
               <li class="flex items-center gap-3 border border-[var(--color-border)] rounded-2xl p-4">
                 <span class="flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary-dark)] shrink-0">
                   <ng-icon name="lucideHeartHandshake" size="16" />
@@ -119,7 +122,7 @@ const GENEROS: Genero[] = ['Femenino', 'Masculino', 'Otro'];
                   <span class="font-semibold text-sm text-[var(--color-ink)] truncate">
                     {{ p.nombre }} {{ p.apellidoPaterno }} {{ p.apellidoMaterno }}
                   </span>
-                  <span class="text-xs text-[var(--color-ink-soft)]">{{ p.edad }} años · {{ p.genero }}</span>
+                  <span class="text-xs text-[var(--color-ink-soft)]">{{ edad(p) }} años · {{ genero(p) }}</span>
                 </div>
               </li>
             }
@@ -139,7 +142,7 @@ export class CrearPaciente implements OnInit {
   private router = inject(Router);
   private store = inject(AdminStore);
 
-  protected readonly generos = GENEROS;
+  protected readonly sexos = SEXOS;
 
   mensajeExito = signal('');
   estaCargando = signal(false);
@@ -149,14 +152,22 @@ export class CrearPaciente implements OnInit {
     nombre: this.fb.control('', Validators.required),
     apellidoPaterno: this.fb.control('', Validators.required),
     apellidoMaterno: this.fb.control('', Validators.required),
-    fechaNacimiento: this.fb.control('', Validators.required), // <input type="date">
+    fechaNacimiento: this.fb.control('', Validators.required),
     sexo: this.fb.control<'M' | 'F' | ''>('', Validators.required),
     idModalidad: this.fb.control<number | null>(1),
     idEstadoPaciente: this.fb.control<number | null>(1),
   });
 
-  ngOnInit () {
+  ngOnInit() {
     this.store.cargarPacientes();
+  }
+
+  edad(p: PacienteDTO): number {
+    return edadDesdeFechaNacimiento(p.fechaNacimiento);
+  }
+
+  genero(p: PacienteDTO): string {
+    return generoDesdeSexo(p.sexo);
   }
 
   mostrarError(control: keyof typeof this.form.controls): boolean {
@@ -170,17 +181,24 @@ export class CrearPaciente implements OnInit {
       return;
     }
     const v = this.form.value;
-    await this.store.crearPaciente({
-      nombre: v.nombre!,
-      apellidoPaterno: v.apellidoPaterno!,
-      apellidoMaterno: v.apellidoMaterno!,
-      fechaNacimiento: v.fechaNacimiento!,
-      sexo: v.sexo!,
-      idModalidad: v.idModalidad!,
-      idEstadoPaciente: v.idEstadoPaciente!,
-    });
-    this.mensajeExito.set('Se creó el paciente correctamente.');
-    this.form.reset();
+    this.estaCargando.set(true);
+    try {
+      await this.store.crearPaciente({
+        nombre: v.nombre!,
+        apellidoPaterno: v.apellidoPaterno!,
+        apellidoMaterno: v.apellidoMaterno!,
+        fechaNacimiento: v.fechaNacimiento!,
+        sexo: v.sexo as 'M' | 'F',
+        idModalidad: v.idModalidad!,
+        idEstadoPaciente: v.idEstadoPaciente!,
+      });
+      this.mensajeExito.set('Se creó el paciente correctamente.');
+      this.form.reset({ sexo: '', idModalidad: 1, idEstadoPaciente: 1 });
+    } catch (error) {
+      console.error('Error al crear paciente:', error);
+    } finally {
+      this.estaCargando.set(false);
+    }
   }
 
   cerrarSesion() {
