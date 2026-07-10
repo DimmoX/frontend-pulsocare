@@ -1,40 +1,30 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideClock4, lucideUserRound } from '@ng-icons/lucide';
-import { EstadoSigno, Paciente, estadoPaciente } from '../../data/mock-data';
+import { lucideCheck, lucideClock4, lucideUserRound } from '@ng-icons/lucide';
+import { ConsultasService } from '../../core/services/consultas.service';
+import { AlertaDTO, EstadoSigno, LecturaDTO } from '../../core/models/consultas.dto';
+import { UmbralDTO } from '../../core/models/umbral.dto';
+import { PacienteDTO, edadDesdeFechaNacimiento } from '../../core/models/paciente.dto';
 import { VitalCard } from '../vital-card/vital-card';
+
+const INTERVALO_REFRESCO_MS = 8000;
 
 const RESUMEN: Record<EstadoSigno, { texto: string; detalle: string }> = {
   ok: { texto: 'Estable', detalle: 'Todos los signos vitales dentro de su rango normal.' },
-  alerta: {
-    texto: 'En observación',
-    detalle: 'Uno o más signos vitales están cerca de su límite normal.',
-  },
-  critico: {
-    texto: 'Atención requerida',
-    detalle: 'Uno o más signos vitales están fuera de su rango normal.',
-  },
+  alerta: { texto: 'En observación', detalle: 'Uno o más signos vitales están cerca de su límite normal.' },
+  critico: { texto: 'Atención requerida', detalle: 'Uno o más signos vitales están fuera de su rango normal.' },
 };
 
 const ESTADO_CLASES: Record<EstadoSigno, { borde: string; chip: string }> = {
-  ok: {
-    borde: 'border-l-[var(--color-status-ok)]',
-    chip: 'bg-[var(--color-status-ok-soft)] text-[var(--color-status-ok)]',
-  },
-  alerta: {
-    borde: 'border-l-[var(--color-status-warn)]',
-    chip: 'bg-[var(--color-status-warn-soft)] text-[var(--color-status-warn)]',
-  },
-  critico: {
-    borde: 'border-l-[var(--color-status-critical)]',
-    chip: 'bg-[var(--color-status-critical-soft)] text-[var(--color-status-critical)]',
-  },
+  ok: { borde: 'border-l-[var(--color-status-ok)]', chip: 'bg-[var(--color-status-ok-soft)] text-[var(--color-status-ok)]' },
+  alerta: { borde: 'border-l-[var(--color-status-warn)]', chip: 'bg-[var(--color-status-warn-soft)] text-[var(--color-status-warn)]' },
+  critico: { borde: 'border-l-[var(--color-status-critical)]', chip: 'bg-[var(--color-status-critical-soft)] text-[var(--color-status-critical)]' },
 };
 
 @Component({
   selector: 'app-vitals-board',
   imports: [VitalCard, NgIcon],
-  viewProviders: [provideIcons({ lucideUserRound, lucideClock4 })],
+  viewProviders: [provideIcons({ lucideUserRound, lucideClock4, lucideCheck })],
   template: `
     <section class="flex flex-col gap-6">
       <div
@@ -49,9 +39,7 @@ const ESTADO_CLASES: Record<EstadoSigno, { borde: string; chip: string }> = {
             <h2 class="font-display text-xl font-semibold m-0 text-[var(--color-ink)]">
               {{ paciente().nombre }} {{ paciente().apellidoPaterno }} {{ paciente().apellidoMaterno }}
             </h2>
-            <p class="mt-1 text-sm text-[var(--color-ink-soft)]">
-              {{ paciente().edad }} años · {{ paciente().diagnostico }} · {{ paciente().habitacion }}
-            </p>
+            <p class="mt-1 text-sm text-[var(--color-ink-soft)]">{{ edad() }} años</p>
           </div>
         </div>
 
@@ -64,22 +52,131 @@ const ESTADO_CLASES: Record<EstadoSigno, { borde: string; chip: string }> = {
 
         <div class="inline-flex items-center gap-1.5 text-sm text-[var(--color-ink-soft)] whitespace-nowrap">
           <ng-icon name="lucideClock4" size="16" />
-          Actualizado {{ paciente().ultimaActualizacion }}
+          {{ ultimaActualizacionTexto() }}
         </div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        @for (signo of paciente().signos; track signo.clave) {
-          <app-vital-card [signo]="signo" />
-        }
-      </div>
+      @if (cargando()) {
+        <p class="text-sm text-[var(--color-ink-soft)]">Cargando signos vitales…</p>
+      } @else if (lecturas().length === 0) {
+        <p class="text-sm text-[var(--color-ink-soft)]">
+          Aún no hay lecturas registradas para este paciente. El monitor comenzará a mostrar datos
+          apenas llegue la primera medición.
+        </p>
+      } @else {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          @for (lectura of lecturas(); track lectura.idSignoVital) {
+            <app-vital-card [lectura]="lectura" [umbral]="umbralDe(lectura.idSignoVital)" />
+          }
+        </div>
+      }
+
+      @if (alertasActivas().length > 0) {
+        <div class="flex flex-col gap-3">
+          @for (alerta of alertasActivas(); track alerta.idAlerta) {
+            <div
+              class="flex items-center justify-between gap-4 p-4 px-5 rounded-2xl border"
+              [class]="alerta.nivelCodigo === 'ROJO'
+                ? 'border-[var(--color-status-critical)]/50 bg-[var(--color-status-critical-soft)]'
+                : 'border-[var(--color-status-warn)]/50 bg-[var(--color-status-warn-soft)]'"
+            >
+              <p class="m-0 text-sm text-[var(--color-ink)]">
+                <strong>{{ alerta.signoCodigo }}</strong> fuera de rango ({{ alerta.valorRegistrado }}) — {{ alerta.umbralViolado }}
+              </p>
+              @if (puedeReconocerAlertas() && idUsuarioActual()) {
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-none bg-[var(--color-primary)] text-white text-xs font-semibold cursor-pointer shrink-0"
+                  (click)="reconocer(alerta.idAlerta)"
+                >
+                  <ng-icon name="lucideCheck" size="14" />
+                  Reconocer
+                </button>
+              }
+            </div>
+          }
+        </div>
+      }
     </section>
   `,
 })
 export class VitalsBoard {
-  paciente = input.required<Paciente>();
+  private consultas = inject(ConsultasService);
 
-  estado = computed<EstadoSigno>(() => estadoPaciente(this.paciente()));
+  paciente = input.required<PacienteDTO>();
+  puedeReconocerAlertas = input<boolean>(false);
+  idUsuarioActual = input<number | null>(null);
+
+  private lecturasSignal = signal<LecturaDTO[]>([]);
+  private alertasSignal = signal<AlertaDTO[]>([]);
+  private umbralesSignal = signal<UmbralDTO[]>([]);
+  private ultimaCarga = signal<Date | null>(null);
+  cargando = signal(true);
+
+  lecturas = this.lecturasSignal.asReadonly();
+  alertasActivas = computed(() =>
+    this.alertasSignal().filter((a) => a.estadoCodigo === 'GENERADA' || a.estadoCodigo === 'NOTIFICADA')
+  );
+
+  edad = computed(() => edadDesdeFechaNacimiento(this.paciente().fechaNacimiento));
+
+  estado = computed<EstadoSigno>(() => {
+    if (this.alertasActivas().some((a) => a.nivelCodigo === 'ROJO')) return 'critico';
+    if (this.alertasActivas().length > 0) return 'alerta';
+    return 'ok';
+  });
   resumen = computed(() => RESUMEN[this.estado()]);
   clases = computed(() => ESTADO_CLASES[this.estado()]);
+
+  ultimaActualizacionTexto = computed(() => {
+    const fecha = this.ultimaCarga();
+    if (!fecha) return 'Cargando…';
+    const segundos = Math.max(0, Math.round((Date.now() - fecha.getTime()) / 1000));
+    return segundos < 60 ? `Actualizado hace ${segundos} s` : `Actualizado hace ${Math.round(segundos / 60)} min`;
+  });
+
+  private intervalo?: ReturnType<typeof setInterval>;
+
+  constructor() {
+    effect((onCleanup) => {
+      const idPaciente = this.paciente().idPaciente;
+      this.cargando.set(true);
+      this.cargarTodo(idPaciente);
+      this.intervalo = setInterval(() => this.cargarTodo(idPaciente), INTERVALO_REFRESCO_MS);
+      onCleanup(() => clearInterval(this.intervalo));
+    });
+  }
+
+  umbralDe(idSignoVital: number): UmbralDTO | null {
+    return this.umbralesSignal().find((u) => u.idSignoVital === idSignoVital) ?? null;
+  }
+
+  private async cargarTodo(idPaciente: number) {
+    try {
+      const [lecturas, alertas, umbrales] = await Promise.all([
+        this.consultas.ultimas(idPaciente),
+        this.consultas.alertas(idPaciente),
+        this.consultas.umbrales(idPaciente),
+      ]);
+      this.lecturasSignal.set(lecturas);
+      this.alertasSignal.set(alertas);
+      this.umbralesSignal.set(umbrales);
+      this.ultimaCarga.set(new Date());
+    } catch (error) {
+      console.error('Error al cargar signos vitales:', error);
+    } finally {
+      this.cargando.set(false);
+    }
+  }
+
+  async reconocer(idAlerta: number) {
+    const idUsuario = this.idUsuarioActual();
+    if (!idUsuario) return;
+    try {
+      await this.consultas.reconocer(idAlerta, idUsuario);
+      await this.cargarTodo(this.paciente().idPaciente);
+    } catch (error) {
+      console.error('Error al reconocer la alerta:', error);
+    }
+  }
 }
