@@ -1,0 +1,42 @@
+name: Sincronizar fork con upstream
+
+# Automatico (agenda) + bajo demanda (Run workflow).
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # cada 15 minutos
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del fork (historia completa)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Rebasar los commits de deploy sobre upstream
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/DanielSanJuan99/frontend-pulsocare.git
+          git fetch upstream main
+
+          # Si no hay nada nuevo en upstream, no hace falta hacer nada.
+          if git merge-base --is-ancestor upstream/main HEAD; then
+            echo "El fork ya esta al dia con upstream. Nada que sincronizar."
+            exit 0
+          fi
+
+          # Reaplica los commits propios (config de deploy) sobre lo ultimo de Daniel.
+          if git rebase upstream/main; then
+            git push origin main --force-with-lease
+            echo "Fork sincronizado: commits de deploy sobre upstream/main."
+          else
+            git rebase --abort
+            echo "::error::Conflicto al rebasar (Daniel edito los mismos archivos de config). Resolver manual: git fetch upstream && git rebase upstream/main"
+            exit 1
+          fi
