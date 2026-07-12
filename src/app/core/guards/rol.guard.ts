@@ -17,7 +17,12 @@ export function rolGuard(rolesPermitidos: RolClave[]): CanActivateFn {
       if (!cuenta) {
         return router.parseUrl('/'); // MsalGuard, que corre antes, ya gatilla el login.
       }
-      await authStore.sincronizarConBackend(cuenta.idTokenClaims as any);
+      try {
+        await authStore.sincronizarConBackend(cuenta.idTokenClaims as any);
+      } catch (error) {
+        console.error('No se pudo sincronizar con el backend al validar el rol:', error);
+        return router.parseUrl('/');
+      }
     }
 
     const rolActual = authStore.rolClave();

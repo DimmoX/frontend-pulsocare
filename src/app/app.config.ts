@@ -4,6 +4,7 @@ import { provideHttpClient, withInterceptorsFromDi, HTTP_INTERCEPTORS } from '@a
 import { routes } from './app.routes';
 import { MsalModule, MsalInterceptor, MsalGuard, MsalService, MsalBroadcastService } from '@azure/msal-angular';
 import { PublicClientApplication, InteractionType } from '@azure/msal-browser';
+import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -24,7 +25,7 @@ export const appConfig: ApplicationConfig = {
             clientId: 'bbc1023b-e89e-4fd1-925c-141f8d7d148c',
             authority: 'https://pulsocareduoc.b2clogin.com/pulsocareduoc.onmicrosoft.com/B2C_1_SIGN_IN',
             knownAuthorities: ['pulsocareduoc.b2clogin.com'],
-            redirectUri: 'http://localhost:4200'
+            redirectUri: 'window.location.origin'
           },
           cache: {
             cacheLocation: 'localStorage'
@@ -37,7 +38,7 @@ export const appConfig: ApplicationConfig = {
         {
           interactionType: InteractionType.Redirect,
           protectedResourceMap: new Map([
-            ['http://localhost:8080/api/', ['bbc1023b-e89e-4fd1-925c-141f8d7d148c']]
+            [`${environment.apiUrl}/`, ['bbc1023b-e89e-4fd1-925c-141f8d7d148c']]
           ])
         }
       )
