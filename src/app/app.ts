@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { MsalBroadcastService, MsalService } from '@azure/msal-angular';
-import { EventMessage, EventType, AuthenticationResult, AuthError } from '@azure/msal-browser';
+import { EventMessage, EventType, AuthenticationResult, AuthError, AccountInfo } from '@azure/msal-browser';
 import { filter } from 'rxjs';
 import { AuthStore } from './core/services/auth.store';
 import { ROL_A_RUTA, rolDesdeJobTitle } from './core/auth/roles.config';
@@ -23,38 +23,37 @@ export class App implements OnInit {
   ngOnInit(): void {
     this.authService.initialize().subscribe(() => {
       this.authService.handleRedirectObservable().subscribe({
-        next: () => {},
+        next: (result) => {
+          // Caso 1: volvimos de un login (result trae la cuenta)
+          if (result?.account) {
+            this.procesarSesion(result.account, result.idTokenClaims as Record<string, any>);
+            return;
+          }
+          // Caso 2: ya habia sesion activa (recarga de pagina)
+          const cuenta = this.authService.instance.getActiveAccount()
+            ?? this.authService.instance.getAllAccounts()[0];
+          if (cuenta) {
+            this.procesarSesion(cuenta, cuenta.idTokenClaims as Record<string, any>);
+          }
+        },
         error: (error: any) => {
-          // Si el usuario hizo clic en "¿Olvidó su contraseña?"
           if (error?.message?.includes('AADB2C90118')) {
-            this.authService.loginRedirect({
-              authority: this.passwordResetAuthority,
-              scopes: ['openid']
-            });
+            this.authService.loginRedirect({ authority: this.passwordResetAuthority, scopes: ['openid'] });
           }
         }
       });
+    });
+  }
 
-      this.msalBroadcastService.msalSubject$
-        .pipe(
-          filter((msg: EventMessage) => msg.eventType === EventType.LOGIN_SUCCESS)
-        )
-        .subscribe(async (result: EventMessage) => {
-          const payload = result.payload as AuthenticationResult;
-          this.authService.instance.setActiveAccount(payload.account);
-          const claims = payload.idTokenClaims as Record<string, any>;
-
-          const puesto = claims?.['jobTitle'] as string;
-          console.log('El puesto del usuario es: ', puesto);
-
-          try {
-            await this.authStore.sincronizarConBackend(claims);
-            this.router.navigateByUrl(ROL_A_RUTA[this.authStore.rolClave() ?? 'FAMILIAR']);
-          } catch (error) {
-            console.error('No se pudo sincronizar correctamente, error de token o de backend: ', error);
-            this.router.navigateByUrl(ROL_A_RUTA[rolDesdeJobTitle(claims?.['jobTitle'])]);
-          }
-        })
-    })
+  private async procesarSesion(account: AccountInfo, claims: Record<string, any>): Promise<void> {
+    this.authService.instance.setActiveAccount(account);
+    console.log('El puesto del usuario es: ', claims?.['jobTitle']);
+    try {
+      await this.authStore.sincronizarConBackend(claims);
+      this.router.navigateByUrl(ROL_A_RUTA[this.authStore.rolClave() ?? 'FAMILIAR']);
+    } catch (error) {
+      console.error('No se pudo sincronizar: ', error);
+      this.router.navigateByUrl(ROL_A_RUTA[rolDesdeJobTitle(claims?.['jobTitle'])]);
+    }
   }
 }
