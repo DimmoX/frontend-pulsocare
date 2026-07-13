@@ -48,3 +48,4 @@ export const appConfig: ApplicationConfig = {
     MsalBroadcastService
   ]
 };
+
