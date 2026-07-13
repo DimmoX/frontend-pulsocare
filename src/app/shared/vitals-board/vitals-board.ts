@@ -174,15 +174,4 @@ export class VitalsBoard {
       this.cargando.set(false);
     }
   }
-
-  // async reconocer(idAlerta: number) {
-  //   const idUsuario = this.idUsuarioActual();
-  //   if (!idUsuario) return;
-  //   try {
-  //     await this.consultas.reconocer(idAlerta, idUsuario);
-  //     await this.cargarTodo(this.paciente().idPaciente);
-  //   } catch (error) {
-  //     console.error('Error al reconocer la alerta:', error);
-  //   }
-  // }
 }

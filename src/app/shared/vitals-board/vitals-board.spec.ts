@@ -137,14 +137,4 @@ describe('VitalsBoard', () => {
     expect(otroComponent.alertasActivas()).toHaveLength(1);
     otraFixture.destroy();
   });
-
-  it('reconocer() solo debe llamar al backend si hay un idUsuarioActual', async () => {
-    fixture.componentRef.setInput('idUsuarioActual', null);
-    await component.reconocer(1);
-    expect(consultasMock.reconocer).not.toHaveBeenCalled();
-
-    fixture.componentRef.setInput('idUsuarioActual', 99);
-    await component.reconocer(1);
-    expect(consultasMock.reconocer).toHaveBeenCalledWith(1, 99);
-  });
 });

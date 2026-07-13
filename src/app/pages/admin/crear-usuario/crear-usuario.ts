@@ -106,11 +106,6 @@ type TipoUsuarioFormulario = 'medico' | 'familiar';
             }
           </div>
 
-          <p class="mt-4 text-xs text-[var(--color-ink-soft)]">
-            No se pide contraseña: esta persona inicia sesión con su cuenta de Microsoft (Entra ID).
-            Al crearla aquí solo queda pre-registrada con su correo y su rol.
-          </p>
-
           <div class="flex justify-end gap-3 mt-6">
             <button type="button" class="px-4.5 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-ink-soft)] text-sm font-semibold cursor-pointer" (click)="form.reset({ idParentesco: null })">
               Limpiar formulario
