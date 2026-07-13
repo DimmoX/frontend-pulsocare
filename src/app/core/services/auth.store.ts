@@ -38,6 +38,8 @@ export class AuthStore {
       idRol: ROL_A_ID_ROL[rolClave],
     };
 
+    console.log('Sincronizando con backend (payload): ', payload);
+
     const usuario = await firstValueFrom(
       this.http.post<UsuarioDTO>(`${this.apiUrl}/auth/registro`, payload)
     );
