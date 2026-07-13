@@ -25,7 +25,7 @@ export const appConfig: ApplicationConfig = {
             clientId: 'bbc1023b-e89e-4fd1-925c-141f8d7d148c',
             authority: 'https://pulsocareduoc.b2clogin.com/pulsocareduoc.onmicrosoft.com/B2C_1_SIGN_IN',
             knownAuthorities: ['pulsocareduoc.b2clogin.com'],
-            redirectUri: 'window.location.origin'
+            redirectUri: 'https://main.d3kr9b0z736ylh.amplifyapp.com/'
           },
           cache: {
             cacheLocation: 'localStorage'
