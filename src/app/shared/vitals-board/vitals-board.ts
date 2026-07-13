@@ -2,7 +2,7 @@ import { Component, computed, effect, inject, input, signal } from '@angular/cor
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCheck, lucideClock4, lucideUserRound } from '@ng-icons/lucide';
 import { ConsultasService } from '../../core/services/consultas.service';
-import { AlertaDTO, EstadoSigno, LecturaDTO } from '../../core/models/consultas.dto';
+import { AlertaDTO, definicionSigno, EstadoSigno, LecturaDTO } from '../../core/models/consultas.dto';
 import { UmbralDTO } from '../../core/models/umbral.dto';
 import { PacienteDTO, edadDesdeFechaNacimiento } from '../../core/models/paciente.dto';
 import { VitalCard } from '../vital-card/vital-card';
@@ -85,6 +85,7 @@ export class VitalsBoard {
   private alertasSignal = signal<AlertaDTO[]>([]);
   private umbralesSignal = signal<UmbralDTO[]>([]);
   private ultimaCarga = signal<Date | null>(null);
+  private ahoraSignal = signal(Date.now());
   cargando = signal(true);
 
   lecturas = this.lecturasSignal.asReadonly();
@@ -101,9 +102,27 @@ export class VitalsBoard {
 
   edad = computed(() => edadDesdeFechaNacimiento(this.paciente().fechaNacimiento));
 
+  private estadoDeLectura(lectura: LecturaDTO): EstadoSigno {
+    const valor = lectura.valorNum;
+    const u = this.umbralDe(lectura.idSignoVital);
+
+    if (u) {
+      if (valor < u.valorMinCritico || valor > u.valorMaxCritico) return 'critico';
+      if (valor < u.valorMin || valor > u.valorMax) return 'alerta';
+      return 'ok';
+    }
+
+    const { min, max } = definicionSigno(lectura.signoCodigo).rangoDefault;
+    const margen = definicionSigno(lectura.signoCodigo).margenDefault;
+    if (valor < min || valor > max) return 'critico';
+    if (valor <= min + margen || valor >= max - margen) return 'alerta';
+    return 'ok';
+  }
+
   estado = computed<EstadoSigno>(() => {
-    if (this.alertasActivas().some((a) => a.nivelCodigo === 'ROJO')) return 'critico';
-    if (this.alertasActivas().length > 0) return 'alerta';
+    const estados = this.lecturas().map((l) => this.estadoDeLectura(l));
+    if (estados.some((e) => e === 'critico')) return 'critico';
+    if (estados.some((e) => e === 'alerta')) return 'alerta';
     return 'ok';
   });
   resumen = computed(() => RESUMEN[this.estado()]);
@@ -111,8 +130,9 @@ export class VitalsBoard {
 
   ultimaActualizacionTexto = computed(() => {
     const fecha = this.ultimaCarga();
+    const ahora = this.ahoraSignal();
     if (!fecha) return 'Cargando…';
-    const segundos = Math.max(0, Math.round((Date.now() - fecha.getTime()) / 1000));
+    const segundos = Math.max(0, Math.round((ahora - fecha.getTime()) / 1000));
     return segundos < 60 ? `Actualizado hace ${segundos} s` : `Actualizado hace ${Math.round(segundos / 60)} min`;
   });
 
@@ -125,6 +145,11 @@ export class VitalsBoard {
       this.cargarTodo(idPaciente);
       this.intervalo = setInterval(() => this.cargarTodo(idPaciente), INTERVALO_REFRESCO_MS);
       onCleanup(() => clearInterval(this.intervalo));
+    });
+
+    effect((onCleanup) => {
+      const tick = setInterval(() => this.ahoraSignal.set(Date.now()), 1000);
+      onCleanup(() => clearInterval(tick));
     });
   }
 
