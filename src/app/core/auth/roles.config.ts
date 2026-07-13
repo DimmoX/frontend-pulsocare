@@ -1,4 +1,4 @@
-export type RolClave = 'ADMIN' | 'MEDICO' | 'FAMILIAR' | 'PACIENTE';
+export type RolClave = 'ADMIN' | 'MEDICO' | 'FAMILIAR';
 
 function normalizar(texto: string): string {
   return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
@@ -8,8 +8,7 @@ function normalizar(texto: string): string {
 const JOB_TITLE_A_ROL: Record<string, RolClave> = {
   administrador: 'ADMIN',
   medico: 'MEDICO',
-  familiar: 'FAMILIAR',
-  paciente: 'PACIENTE'
+  familiar: 'FAMILIAR'
 };
 
 export function rolDesdeJobTitle(jobTitle?: string | null): RolClave {
@@ -22,8 +21,7 @@ const NOMBRE_ROL_A_CLAVE: Record<string, RolClave> = {
   medico: 'MEDICO',
   enfermero: 'MEDICO', // no tiene ruta propia hoy; se homologa a Médico
   familiar: 'FAMILIAR',
-  administrador: 'ADMIN',
-  paciente: 'PACIENTE'
+  administrador: 'ADMIN'
 };
 
 export function claveDesdeNombreRol(nombreRol?: string | null): RolClave | null {
@@ -35,15 +33,13 @@ export function claveDesdeNombreRol(nombreRol?: string | null): RolClave | null 
 export const ROL_A_ID_ROL: Record<RolClave, number> = {
   MEDICO: 1,
   FAMILIAR: 3,
-  ADMIN: 4,
-  PACIENTE: 5
+  ADMIN: 4
 };
 
 export const ROL_A_RUTA: Record<RolClave, string> = {
   ADMIN: '/admin/usuarios',
   MEDICO: '/medico/pacientes',
-  FAMILIAR: '/familiar/signos-vitales',
-  PACIENTE: '/paciente/historial'
+  FAMILIAR: '/familiar/signos-vitales'
 };
 
 // Catálogo real de PC_PARENTESCO (reemplaza los valores inventados de crear-usuario.ts).
