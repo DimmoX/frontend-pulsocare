@@ -17,7 +17,11 @@ describe('App', () => {
     msalServiceMock = {
       initialize: vi.fn().mockReturnValue({ subscribe: (fn: any) => fn() }),
       handleRedirectObservable: vi.fn().mockReturnValue({ subscribe: (observer: any) => observer.next?.(null) }),
-      instance: { setActiveAccount: vi.fn() },
+      instance: {
+        setActiveAccount: vi.fn(),
+        getActiveAccount: vi.fn().mockReturnValue(null),
+        getAllAccounts: vi.fn().mockReturnValue([]),
+      },
       loginRedirect: vi.fn(),
     };
     authStoreMock = {

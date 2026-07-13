@@ -38,7 +38,7 @@ describe('CrearUsuario', () => {
       pacientesPorUsuario: signal<Record<number, PacienteDTO[]>>({ 10: [] }),
       cargarUsuarios: vi.fn().mockResolvedValue(undefined),
       cargarPacientes: vi.fn().mockResolvedValue(undefined),
-      crearUsuario: vi.fn().mockResolvedValue(undefined),
+      crearUsuario: vi.fn().mockResolvedValue({ usuario: usuarioDeEjemplo, passwordTemporal: 'temp-pass-123' }),
       asignarPaciente: vi.fn().mockResolvedValue(undefined),
       quitarAsignacion: vi.fn().mockResolvedValue(undefined),
     };

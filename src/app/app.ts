@@ -26,6 +26,13 @@ export class App implements OnInit {
     console.log('[DEBUG] apiUrl configurada:', environment.apiUrl);
     console.log('[DEBUG] production flag:', environment.production);
 
+    this.msalBroadcastService.msalSubject$
+    .pipe(filter((msg: EventMessage) => msg.eventType === EventType.LOGIN_SUCCESS))
+    .subscribe((result) => {
+      const payload = result.payload as AuthenticationResult;
+      this.procesarSesion(payload.account as AccountInfo, payload.idTokenClaims as Record<string, any>, true);
+    });
+
     this.authService.initialize().subscribe(() => {
       this.authService.handleRedirectObservable().subscribe({
         next: (result) => {

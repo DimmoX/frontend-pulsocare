@@ -11,7 +11,6 @@ describe('VitalsBoard', () => {
     ultimas: ReturnType<typeof vi.fn>;
     alertas: ReturnType<typeof vi.fn>;
     umbrales: ReturnType<typeof vi.fn>;
-    reconocer: ReturnType<typeof vi.fn>;
   };
 
   const paciente: PacienteDTO = {
@@ -56,7 +55,6 @@ describe('VitalsBoard', () => {
       ultimas: vi.fn().mockResolvedValue(lecturas),
       alertas: vi.fn().mockResolvedValue([]),
       umbrales: vi.fn().mockResolvedValue([]),
-      reconocer: vi.fn().mockResolvedValue({}),
     };
 
     await TestBed.configureTestingModule({
@@ -107,24 +105,10 @@ describe('VitalsBoard', () => {
     expect(consultasMock.ultimas).toHaveBeenCalled();
   });
 
-  it('debe marcar estado "critico" si alguna alerta activa es de nivel ROJO', async () => {
-    const alertaCritica: AlertaDTO = {
-      idAlerta: 1,
-      idLectura: 1,
-      idPaciente: 3,
-      idSignoVital: 1,
-      signoCodigo: 'FC',
-      idNivelAlerta: 2,
-      nivelCodigo: 'ROJO',
-      idEstadoAlerta: 1,
-      estadoCodigo: 'GENERADA',
-      valorRegistrado: 130,
-      umbralViolado: 'valorMaxCritico',
-      fechaGeneracion: '',
-      idReconocidaPor: null,
-      fechaReconocimiento: null,
-    };
-    consultasMock.alertas.mockResolvedValue([alertaCritica]);
+  it('debe marcar estado "critico" si alguna lectura supera el umbral crítico', async () => {
+    consultasMock.ultimas.mockResolvedValue([
+      { ...lecturas[0], idPaciente: 3, valorNum: 130 },
+    ]);
 
     const otraFixture = TestBed.createComponent(VitalsBoard);
     otraFixture.componentRef.setInput('paciente', { ...paciente, idPaciente: 3 });
@@ -132,9 +116,7 @@ describe('VitalsBoard', () => {
     await esperarCarga();
     otraFixture.detectChanges();
 
-    const otroComponent = otraFixture.componentInstance;
-    expect(otroComponent.estado()).toBe('critico');
-    expect(otroComponent.alertasActivas()).toHaveLength(1);
+    expect(otraFixture.componentInstance.estado()).toBe('critico');
     otraFixture.destroy();
   });
 });
