@@ -62,12 +62,13 @@ export class AdminStore {
   // MÉTODOS DE CREACIÓN (POST)
   // ========================================================
 
-  async crearUsuario(input: NuevoUsuarioInput): Promise<void> {
+  async crearUsuario(input: NuevoUsuarioInput): Promise<{ usuario: UsuarioDTO; passwordTemporal: string }> {
     try {
+      const passwordTemporal = crypto.randomUUID();
       const payload = {
         displayName: input.nombreCompleto,
         correo: input.correo,
-        pass: crypto.randomUUID(),
+        pass: passwordTemporal,
         idRol: ROL_A_ID_ROL[input.tipo],
         idParentesco: input.tipo == 'FAMILIAR' ? input.idParentesco : undefined
       }
@@ -75,6 +76,7 @@ export class AdminStore {
         this.http.post<UsuarioDTO>(`${this.apiUrl}/auth/registro`, payload)
       );
       this.usuarios.update((lista) => [nuevoUsuario, ...lista]);
+      return { usuario: nuevoUsuario, passwordTemporal };
     } catch (error) {
       console.error('Error al crear usuario en Spring Boot: ', error);
       throw error;

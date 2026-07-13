@@ -34,8 +34,8 @@ type TipoUsuarioFormulario = 'medico' | 'familiar';
     />
     <app-admin-tabs />
 
-    <main class="max-w-6xl mx-auto p-7 grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6">
-      <section class="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-7">
+    <main class="max-w-6xl mx-auto p-7 grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6 items-start">
+      <section class="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-7 lg:sticky lg:top-7 lg:h-[600px]">
         <div class="flex flex-col gap-2.5 mb-6">
           <span class="text-xs font-semibold uppercase tracking-wide text-[var(--color-ink-soft)]">Tipo de usuario</span>
           <div class="flex gap-3">
@@ -130,7 +130,7 @@ type TipoUsuarioFormulario = 'medico' | 'familiar';
         </form>
       </section>
 
-      <section class="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-7">
+      <section class="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-7 lg:h-[600px] overflow-y-auto">
         <h2 class="font-display text-base font-semibold m-0 mb-4 text-[var(--color-ink)]">Médicos y familiares registrados</h2>
 
         @if (errorAsignacion()) {
@@ -220,6 +220,7 @@ export class CrearUsuario implements OnInit {
   tipo = signal<TipoUsuarioFormulario>('medico');
   mensajeExito = signal('');
   estaCargando = signal(false);
+  passwordTemporal = signal('');
   errorAsignacion = signal<string | null>(null);
 
   usuarios = this.store.usuarios;
@@ -300,20 +301,21 @@ export class CrearUsuario implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
-
     const v = this.form.value;
     this.estaCargando.set(true);
 
     try {
-      await this.store.crearUsuario({
+      const { passwordTemporal } = await this.store.crearUsuario({
         nombreCompleto: `${v.nombre} ${v.apellidoPaterno}`,
         correo: v.correo!,
         tipo: this.tipo() === 'medico' ? 'MEDICO' : 'FAMILIAR',
         idParentesco: this.tipo() === 'familiar' ? v.idParentesco ?? undefined : undefined,
       });
 
+      this.passwordTemporal.set(passwordTemporal);
+
       this.mensajeExito.set(
-        `Se creó el usuario de ${this.tipo() === 'medico' ? 'médico' : 'familiar'} correctamente.`
+        `Se creó el usuario de ${this.tipo() === 'medico' ? 'médico' : 'familiar'} correctamente. Su contraseña temporal es: ${passwordTemporal}`
       );
       this.form.reset({ idParentesco: null });
     } catch (error) {

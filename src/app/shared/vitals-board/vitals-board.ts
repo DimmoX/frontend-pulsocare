@@ -6,6 +6,7 @@ import { AlertaDTO, EstadoSigno, LecturaDTO } from '../../core/models/consultas.
 import { UmbralDTO } from '../../core/models/umbral.dto';
 import { PacienteDTO, edadDesdeFechaNacimiento } from '../../core/models/paciente.dto';
 import { VitalCard } from '../vital-card/vital-card';
+const ORDEN_SIGNOS = ['FC', 'SPO2', 'PAS', 'PAD', 'TEMP', 'FR'];
 
 const INTERVALO_REFRESCO_MS = 8000;
 
@@ -65,35 +66,8 @@ const ESTADO_CLASES: Record<EstadoSigno, { borde: string; chip: string }> = {
         </p>
       } @else {
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          @for (lectura of lecturas(); track lectura.idSignoVital) {
+          @for (lectura of lecturasOrdenadas(); track lectura.idSignoVital) {
             <app-vital-card [lectura]="lectura" [umbral]="umbralDe(lectura.idSignoVital)" />
-          }
-        </div>
-      }
-
-      @if (alertasActivas().length > 0) {
-        <div class="flex flex-col gap-3">
-          @for (alerta of alertasActivas(); track alerta.idAlerta) {
-            <div
-              class="flex items-center justify-between gap-4 p-4 px-5 rounded-2xl border"
-              [class]="alerta.nivelCodigo === 'ROJO'
-                ? 'border-[var(--color-status-critical)]/50 bg-[var(--color-status-critical-soft)]'
-                : 'border-[var(--color-status-warn)]/50 bg-[var(--color-status-warn-soft)]'"
-            >
-              <p class="m-0 text-sm text-[var(--color-ink)]">
-                <strong>{{ alerta.signoCodigo }}</strong> fuera de rango ({{ alerta.valorRegistrado }}) — {{ alerta.umbralViolado }}
-              </p>
-              @if (puedeReconocerAlertas() && idUsuarioActual()) {
-                <button
-                  type="button"
-                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-none bg-[var(--color-primary)] text-white text-xs font-semibold cursor-pointer shrink-0"
-                  (click)="reconocer(alerta.idAlerta)"
-                >
-                  <ng-icon name="lucideCheck" size="14" />
-                  Reconocer
-                </button>
-              }
-            </div>
           }
         </div>
       }
@@ -104,7 +78,7 @@ export class VitalsBoard {
   private consultas = inject(ConsultasService);
 
   paciente = input.required<PacienteDTO>();
-  puedeReconocerAlertas = input<boolean>(false);
+  // puedeReconocerAlertas = input<boolean>(false);
   idUsuarioActual = input<number | null>(null);
 
   private lecturasSignal = signal<LecturaDTO[]>([]);
@@ -114,6 +88,13 @@ export class VitalsBoard {
   cargando = signal(true);
 
   lecturas = this.lecturasSignal.asReadonly();
+
+  lecturasOrdenadas = computed(() =>
+    [...this.lecturas()].sort(
+      (a, b) => ORDEN_SIGNOS.indexOf(a.signoCodigo) - ORDEN_SIGNOS.indexOf(b.signoCodigo)
+    )
+  );
+
   alertasActivas = computed(() =>
     this.alertasSignal().filter((a) => a.estadoCodigo === 'GENERADA' || a.estadoCodigo === 'NOTIFICADA')
   );
@@ -169,14 +150,14 @@ export class VitalsBoard {
     }
   }
 
-  async reconocer(idAlerta: number) {
-    const idUsuario = this.idUsuarioActual();
-    if (!idUsuario) return;
-    try {
-      await this.consultas.reconocer(idAlerta, idUsuario);
-      await this.cargarTodo(this.paciente().idPaciente);
-    } catch (error) {
-      console.error('Error al reconocer la alerta:', error);
-    }
-  }
+  // async reconocer(idAlerta: number) {
+  //   const idUsuario = this.idUsuarioActual();
+  //   if (!idUsuario) return;
+  //   try {
+  //     await this.consultas.reconocer(idAlerta, idUsuario);
+  //     await this.cargarTodo(this.paciente().idPaciente);
+  //   } catch (error) {
+  //     console.error('Error al reconocer la alerta:', error);
+  //   }
+  // }
 }

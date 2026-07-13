@@ -27,8 +27,8 @@ const SEXOS: { valor: 'M' | 'F'; etiqueta: string }[] = [
     />
     <app-admin-tabs />
 
-    <main class="max-w-6xl mx-auto p-7 grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6">
-      <section class="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-7">
+    <main class="max-w-6xl mx-auto p-7 grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6 items-start">
+      <section class="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-7 lg:sticky lg:top-7 lg:h-[600px]">
         <div class="flex items-center gap-3 mb-6">
           <span class="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary-dark)]">
             <ng-icon name="lucideUserRound" size="20" />
@@ -106,7 +106,7 @@ const SEXOS: { valor: 'M' | 'F'; etiqueta: string }[] = [
         </form>
       </section>
 
-      <section class="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-7">
+      <section class="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-7 lg:h-[600px] overflow-y-auto">
         <h2 class="font-display text-base font-semibold m-0 mb-4 text-[var(--color-ink)]">Pacientes registrados</h2>
 
         @if (pacientes().length === 0) {
