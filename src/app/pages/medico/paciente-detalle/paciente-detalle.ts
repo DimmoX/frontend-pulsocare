@@ -5,10 +5,11 @@ import { map } from 'rxjs';
 import { AdminStore } from '../../admin/admin-store';
 import { AuthStore } from '../../../core/services/auth.store';
 import { Topbar } from '../../../shared/topbar/topbar';
+import { VitalsBoard } from '../../../shared/vitals-board/vitals-board';
 
 @Component({
   selector: 'app-paciente-detalle',
-  imports: [Topbar],
+  imports: [Topbar, VitalsBoard],
   template: `
     @if (paciente(); as p) {
       <app-topbar
@@ -19,6 +20,10 @@ import { Topbar } from '../../../shared/topbar/topbar';
         [volver]="true"
         (cerrarSesion)="cerrarSesion()"
       />
+
+      <main class="max-w-6xl mx-auto p-7">
+        <app-vitals-board [paciente]="p" />
+      </main>
     } @else if (cargando()) {
       <main class="max-w-6xl mx-auto p-7 flex items-center justify-center min-h-[60vh] text-[var(--color-ink-soft)]">
         <p>Cargando paciente…</p>
