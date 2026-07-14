@@ -78,8 +78,6 @@ export class VitalsBoard {
   private consultas = inject(ConsultasService);
 
   paciente = input.required<PacienteDTO>();
-  // puedeReconocerAlertas = input<boolean>(false);
-  idUsuarioActual = input<number | null>(null);
 
   private lecturasSignal = signal<LecturaDTO[]>([]);
   private alertasSignal = signal<AlertaDTO[]>([]);
