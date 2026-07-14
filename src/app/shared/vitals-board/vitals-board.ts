@@ -6,8 +6,8 @@ import { AlertaDTO, definicionSigno, EstadoSigno, LecturaDTO } from '../../core/
 import { UmbralDTO } from '../../core/models/umbral.dto';
 import { PacienteDTO, edadDesdeFechaNacimiento } from '../../core/models/paciente.dto';
 import { VitalCard } from '../vital-card/vital-card';
-const ORDEN_SIGNOS = ['FC', 'SPO2', 'PAS', 'PAD', 'TEMP', 'FR'];
 
+const ORDEN_SIGNOS = ['FC', 'SPO2', 'PAS', 'PAD', 'TEMP', 'FR'];
 const INTERVALO_REFRESCO_MS = 8000;
 
 const RESUMEN: Record<EstadoSigno, { texto: string; detalle: string }> = {
@@ -156,20 +156,31 @@ export class VitalsBoard {
   }
 
   private async cargarTodo(idPaciente: number) {
-    try {
-      const [lecturas, alertas, umbrales] = await Promise.all([
-        this.consultas.ultimas(idPaciente),
-        this.consultas.alertas(idPaciente),
-        this.consultas.umbrales(idPaciente),
-      ]);
-      this.lecturasSignal.set(lecturas);
-      this.alertasSignal.set(alertas);
-      this.umbralesSignal.set(umbrales);
-      this.ultimaCarga.set(new Date());
-    } catch (error) {
-      console.error('Error al cargar signos vitales:', error);
-    } finally {
-      this.cargando.set(false);
+    const [lecturasResultado, alertasResultado, umbralesResultado] = await Promise.allSettled([
+      this.consultas.ultimas(idPaciente),
+      this.consultas.alertas(idPaciente),
+      this.consultas.umbrales(idPaciente),
+    ]);
+
+    if (lecturasResultado.status === 'fulfilled') {
+      this.lecturasSignal.set(lecturasResultado.value);
+    } else {
+      console.error('Error al cargar lecturas:', lecturasResultado.reason);
     }
+
+    if (alertasResultado.status === 'fulfilled') {
+      this.alertasSignal.set(alertasResultado.value);
+    } else {
+      console.error('Error al cargar alertas (no bloquea lecturas ni umbrales):', alertasResultado.reason);
+    }
+
+    if (umbralesResultado.status === 'fulfilled') {
+      this.umbralesSignal.set(umbralesResultado.value);
+    } else {
+      console.error('Error al cargar umbrales:', umbralesResultado.reason);
+    }
+
+    this.ultimaCarga.set(new Date());
+    this.cargando.set(false);
   }
 }

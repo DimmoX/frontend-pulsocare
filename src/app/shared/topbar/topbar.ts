@@ -70,8 +70,6 @@ export class Topbar {
   }
 
   cierreSesion() {
-    this.authService.logoutRedirect({
-      postLogoutRedirectUri: 'http://localhost:4200'
-    });
+    this.authService.logoutRedirect({ });
   }
 }
