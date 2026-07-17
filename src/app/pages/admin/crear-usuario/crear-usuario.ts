@@ -181,7 +181,7 @@ type TipoUsuarioFormulario = 'medico' | 'familiar';
                   </p>
 
                   @if (pacientesAsignados(u.idUsuario).length === 0) {
-                    <p class="mt-1 text-xs text-[var(--color-ink-soft)]">Sin pacientes asignados todavía.</p>
+                    <p class="mt-1 text-xs text-[var(--color-ink-soft)]">Sin pacientes asignados.</p>
                   } @else {
                     <ul class="mt-2 flex flex-col gap-1.5 list-none m-0 p-0">
                       @for (p of pacientesAsignados(u.idUsuario); track p.idPaciente) {
@@ -199,7 +199,17 @@ type TipoUsuarioFormulario = 'medico' | 'familiar';
                     </ul>
                   }
 
-                  @if (pacientesDisponibles(u.idUsuario).length > 0) {
+                  <!-- A un usuario inactivo no se le asignan pacientes nuevos (no puede
+                       entrar ni recibir alertas), pero su lista de arriba SI se muestra
+                       con el boton Quitar: el admin necesita reasignar a esos pacientes
+                       a otro cuidador. -->
+                  @if (estaInactivo(u)) {
+                    @if (pacientesAsignados(u.idUsuario).length > 0) {
+                      <p class="mt-2 text-xs text-[var(--color-ink-soft)]">
+                        Usuario inactivo: no recibe pacientes nuevos. Reasigna los de arriba a otro cuidador.
+                      </p>
+                    }
+                  } @else if (pacientesDisponibles(u.idUsuario).length > 0) {
                     <div class="mt-2.5 flex gap-2">
                       <select #selNuevoPaciente class="flex-1 px-2.5 py-1.5 rounded-lg border border-[var(--color-border)] text-xs bg-[var(--color-surface)] text-[var(--color-ink)]">
                         @for (p of pacientesDisponibles(u.idUsuario); track p.idPaciente) {
