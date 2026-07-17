@@ -5,6 +5,7 @@ import { Login } from './pages/login/login';
 import { RecuperarPassword } from './pages/recuperar-password/recuperar-password';
 import { CrearUsuario } from './pages/admin/crear-usuario/crear-usuario';
 import { CrearPaciente } from './pages/admin/crear-paciente/crear-paciente';
+import { Auditoria } from './pages/admin/auditoria/auditoria';
 import { SignosVitalesFamiliar } from './pages/familiar/signos-vitales/signos-vitales';
 import { Pacientes } from './pages/medico/pacientes/pacientes';
 import { PacienteDetalle } from './pages/medico/paciente-detalle/paciente-detalle';
@@ -19,7 +20,8 @@ export const routes: Routes = [
     children: [
       { path: '', redirectTo: 'usuarios', pathMatch: 'full' },
       { path: 'usuarios', component: CrearUsuario },
-      {path: 'pacientes', component: CrearPaciente }
+      { path: 'pacientes', component: CrearPaciente },
+      { path: 'auditoria', component: Auditoria }
     ]
   },
   {

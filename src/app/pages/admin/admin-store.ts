@@ -6,6 +6,7 @@ import { ROL_A_ID_ROL, RolClave } from '../../core/auth/roles.config';
 import { UsuarioDTO } from '../../core/models/usuario.dto';
 import { CrearPacienteInput, PacienteDTO } from '../../core/models/paciente.dto';
 import { CuidadorDTO } from '../../core/models/asignacion.dto';
+import { EventoBitacoraDTO } from '../../core/models/bitacora.dto';
 
 export interface NuevoUsuarioInput {
   nombreCompleto: string;
@@ -135,6 +136,13 @@ export class AdminStore {
       this.http.put<PacienteDTO>(`${this.apiUrl}/pacientes/${idPaciente}/estado`, { codigo })
     );
     await this.cargarPacientes();
+  }
+
+  /** Últimos accesos registrados en la bitácora, para el panel de auditoría del admin. */
+  async cargarBitacora(limite = 200): Promise<EventoBitacoraDTO[]> {
+    return firstValueFrom(
+      this.http.get<EventoBitacoraDTO[]>(`${this.apiUrl}/bitacora`, { params: { limite } })
+    );
   }
 
   async cargarCuidadoresDePaciente(idPaciente: number): Promise<CuidadorDTO[]> {
