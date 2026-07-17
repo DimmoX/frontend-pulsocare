@@ -88,7 +88,6 @@ export class VitalsBoard {
   private lecturasSignal = signal<LecturaDTO[]>([]);
   private alertasSignal = signal<AlertaDTO[]>([]);
   private umbralesSignal = signal<UmbralDTO[]>([]);
-  private ultimaCarga = signal<Date | null>(null);
   private ahoraSignal = signal(Date.now());
   cargando = signal(true);
 
@@ -132,12 +131,28 @@ export class VitalsBoard {
   resumen = computed(() => RESUMEN[this.estado()]);
   clases = computed(() => ESTADO_CLASES[this.estado()]);
 
+  /** Instante de la lectura mas reciente, en ms. La base guarda UTC (por eso la "Z"). */
+  private ultimaMedicionMs = computed(() => {
+    const tiempos = this.lecturas()
+      .map((l) => new Date(`${l.fechaMedicion}Z`).getTime())
+      .filter((t) => !Number.isNaN(t));
+    return tiempos.length ? Math.max(...tiempos) : null;
+  });
+
+  /**
+   * Antiguedad del ultimo dato REAL, no de la ultima consulta. Antes se medía contra el
+   * momento del fetch, asi que un paciente sin monitoreo (dado de alta o con el equipo
+   * desconectado) seguia diciendo "hace unos segundos" para siempre. Ahora crece y
+   * muestra con honestidad que los signos vitales estan congelados.
+   */
   ultimaActualizacionTexto = computed(() => {
-    const fecha = this.ultimaCarga();
-    const ahora = this.ahoraSignal();
-    if (!fecha) return 'Cargando…';
-    const segundos = Math.max(0, Math.round((ahora - fecha.getTime()) / 1000));
-    return segundos < 60 ? `Actualizado hace ${segundos} s` : `Actualizado hace ${Math.round(segundos / 60)} min`;
+    const medicion = this.ultimaMedicionMs();
+    if (medicion === null) return this.cargando() ? 'Cargando…' : 'Sin lecturas';
+
+    const segundos = Math.max(0, Math.round((this.ahoraSignal() - medicion) / 1000));
+    if (segundos < 60) return `Última lectura hace ${segundos} s`;
+    if (segundos < 3600) return `Última lectura hace ${Math.round(segundos / 60)} min`;
+    return `Última lectura hace ${Math.round(segundos / 3600)} h`;
   });
 
   private intervalo?: ReturnType<typeof setInterval>;
@@ -200,7 +215,6 @@ export class VitalsBoard {
       console.error('Error al cargar umbrales:', umbralesResultado.reason);
     }
 
-    this.ultimaCarga.set(new Date());
     this.cargando.set(false);
   }
 }
