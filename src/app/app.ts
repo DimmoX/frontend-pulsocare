@@ -34,7 +34,13 @@ export class App implements OnInit {
     });
 
     this.authService.initialize().subscribe(() => {
-      this.authService.handleRedirectObservable().subscribe({
+      // navigateToLoginRequestUrl: al cerrar sesion, B2C devuelve a la app con un
+      // ?state= pegado en la URL. Con el default (true), MSAL guarda esa URL
+      // contaminada como "login request url" y, tras autenticar, navega de vuelta a
+      // ella y reprocesa ese state viejo -> ClientAuthError: state_mismatch, y ya no
+      // se puede volver a entrar. Aqui no hace falta que MSAL navegue: procesarSesion
+      // decide el destino segun el rol (ROL_A_RUTA).
+      this.authService.handleRedirectObservable({ navigateToLoginRequestUrl: false }).subscribe({
         next: (result) => {
           // --- DEBUG 2: ¿MSAL procesó un redirect recién, o no hay nada pendiente? ---
           console.log('[DEBUG] resultado de handleRedirectObservable:', result);
