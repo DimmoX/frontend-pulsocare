@@ -51,9 +51,15 @@ const ESTADO_CLASES: Record<EstadoSigno, { borde: string; chip: string }> = {
           <p class="m-0 text-sm text-[var(--color-ink-soft)]">{{ resumen().detalle }}</p>
         </div>
 
-        <div class="inline-flex items-center gap-1.5 text-sm text-[var(--color-ink-soft)] whitespace-nowrap">
-          <ng-icon name="lucideClock4" size="16" />
-          {{ ultimaActualizacionTexto() }}
+        <div class="flex flex-col items-end gap-2.5">
+          <div class="inline-flex items-center gap-1.5 text-sm text-[var(--color-ink-soft)] whitespace-nowrap">
+            <ng-icon name="lucideClock4" size="16" />
+            {{ ultimaActualizacionTexto() }}
+          </div>
+          <!-- Hueco para acciones del paciente. Se proyecta desde la vista que lo usa:
+               el medico pone aqui el acceso al historico y el familiar no pone nada,
+               porque esa ruta esta protegida por rol. -->
+          <ng-content select="[acciones]" />
         </div>
       </div>
 

@@ -22,7 +22,7 @@ import { MsalService } from '@azure/msal-angular';
       </div>
 
       <div class="flex-1 min-w-48">
-        @if (volver()) {
+        @if (volverA()) {
           <button type="button" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-primary)] bg-transparent border-none p-0 pb-1.5 cursor-pointer" (click)="onVolver()">
             <ng-icon name="lucideArrowLeft" size="16" />
             Volver
@@ -56,7 +56,13 @@ export class Topbar {
   subtitulo = input<string>('');
   usuario = input<string>('');
   rol = input<string>('');
-  volver = input<boolean>(false);
+
+  /**
+   * URL a la que vuelve el boton; vacio lo oculta. Es explicita a proposito: las rutas
+   * se declaran como un solo segmento ("pacientes/:id/historico"), asi que un
+   * navigate(['..']) relativo subiria por el arbol de rutas (a /medico) y no por la URL.
+   */
+  volverA = input<string>('');
 
   cerrarSesion = output<void>();
 
@@ -66,7 +72,7 @@ export class Topbar {
   ) {}
 
   onVolver() {
-    this.router.navigate(['..']);
+    this.router.navigateByUrl(this.volverA());
   }
 
   cierreSesion() {
