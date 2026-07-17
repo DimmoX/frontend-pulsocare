@@ -125,6 +125,18 @@ export class AdminStore {
     await this.cargarUsuarios();
   }
 
+  /**
+   * Da de alta a un paciente (ALTA) o lo reactiva (ESTABLE). No se borra: el DELETE
+   * fallaria por las FKs y en salud no se elimina la historia clinica. Un paciente de
+   * alta deja de monitorearse (el replayer no lo reproduce) pero su historial se conserva.
+   */
+  async cambiarEstadoPaciente(idPaciente: number, codigo: 'ALTA' | 'ESTABLE'): Promise<void> {
+    await firstValueFrom(
+      this.http.put<PacienteDTO>(`${this.apiUrl}/pacientes/${idPaciente}/estado`, { codigo })
+    );
+    await this.cargarPacientes();
+  }
+
   async cargarCuidadoresDePaciente(idPaciente: number): Promise<CuidadorDTO[]> {
     return firstValueFrom(
       this.http.get<CuidadorDTO[]>(`${this.apiUrl}/pacientes/${idPaciente}/asignaciones`)
