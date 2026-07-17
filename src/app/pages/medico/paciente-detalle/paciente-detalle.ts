@@ -37,10 +37,9 @@ import { VitalsBoard } from '../../../shared/vitals-board/vitals-board';
           </div>
         }
 
-        <!-- El acceso al historico se proyecta dentro de la ficha del paciente, junto
-             al "actualizado hace": es una accion sobre ese paciente y se ve sin bajar
-             por los tiles. Va aqui y no dentro del vitals-board porque ese componente
-             lo comparte la vista del familiar, que no tiene acceso al historico. -->
+        <!-- El acceso al historico se proyecta en la ficha del paciente para que quede
+             a la vista. Va aqui y no en vitals-board porque ese componente lo comparte
+             la vista del familiar, que no accede al historico. -->
         <app-vitals-board [paciente]="p">
           <button
             acciones
