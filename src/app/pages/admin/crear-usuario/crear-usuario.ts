@@ -147,12 +147,33 @@ type TipoUsuarioFormulario = 'medico' | 'familiar';
                   >
                     <ng-icon [name]="esMedico(u) ? 'lucideStethoscope' : 'lucideUsersRound'" size="16" />
                   </span>
-                  <div class="flex flex-col gap-0.5 min-w-0">
+                  <div class="flex flex-col gap-0.5 min-w-0 flex-1">
                     <span class="font-semibold text-sm text-[var(--color-ink)] truncate">{{ u.nombre }} {{ u.apellidoPaterno }}</span>
                     <span class="text-xs text-[var(--color-ink-soft)] truncate">{{ u.correo }} · {{ u.rol }}</span>
                   </div>
+
+                  @if (estaInactivo(u)) {
+                    <span class="shrink-0 font-display text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-[var(--color-surface-sunken)] text-[var(--color-ink-soft)]">
+                      Inactivo
+                    </span>
+                  }
+
+                  <button
+                    type="button"
+                    (click)="alternarEstado(u)"
+                    [disabled]="cambiando() === u.idUsuario"
+                    [class]="estaInactivo(u)
+                      ? 'shrink-0 text-xs font-semibold cursor-pointer bg-transparent border-none px-1 text-[var(--color-primary)] disabled:opacity-40'
+                      : 'shrink-0 text-xs font-semibold cursor-pointer bg-transparent border-none px-1 text-[var(--color-status-critical)] disabled:opacity-40'"
+                  >
+                    {{ estaInactivo(u) ? 'Habilitar' : 'Desactivar' }}
+                  </button>
                 </div>
 
+                <!-- Solo el equipo de cuidado tiene pacientes a cargo. Un paciente o un
+                     administrador no cuidan a nadie: mismo criterio que esRolCuidador()
+                     en el backend, que decide quien recibe las alertas. -->
+                @if (esCuidador(u)) {
                 <div class="mt-3 pt-3 border-t border-[var(--color-border)]">
                   <p class="m-0 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-ink-soft)] uppercase tracking-wide">
                     <ng-icon name="lucideLink" size="13" />
@@ -197,6 +218,7 @@ type TipoUsuarioFormulario = 'medico' | 'familiar';
                     <p class="mt-2 text-xs text-[var(--color-ink-soft)]">Aún no hay pacientes registrados para asignar.</p>
                   }
                 </div>
+                }
               </li>
             }
           </ul>
@@ -216,6 +238,9 @@ export class CrearUsuario implements OnInit {
   mensajeExito = signal('');
   estaCargando = signal(false);
   passwordTemporal = signal('');
+
+  /** Id del usuario cuyo estado se esta cambiando: evita doble clic mientras responde. */
+  cambiando = signal<number | null>(null);
   errorAsignacion = signal<string | null>(null);
 
   usuarios = this.store.usuarios;
@@ -235,6 +260,43 @@ export class CrearUsuario implements OnInit {
 
   esMedico(u: UsuarioDTO): boolean {
     return claveDesdeNombreRol(u.rol) === 'MEDICO';
+  }
+
+  /**
+   * Roles que forman el equipo de cuidado: medico, enfermero y familiar. Un paciente o
+   * un administrador no tienen pacientes a cargo. Espeja esRolCuidador() de ms-auth,
+   * que usa el mismo criterio para decidir a quien se le envian las alertas.
+   */
+  esCuidador(u: UsuarioDTO): boolean {
+    const clave = claveDesdeNombreRol(u.rol);
+    return clave === 'MEDICO' || clave === 'FAMILIAR';
+  }
+
+  estaInactivo(u: UsuarioDTO): boolean {
+    return u.estado === 'INACTIVO';
+  }
+
+  /**
+   * Da de baja o habilita. Se confirma antes porque tiene consecuencias inmediatas:
+   * el usuario deja de poder entrar y de recibir alertas de sus pacientes.
+   */
+  async alternarEstado(u: UsuarioDTO) {
+    const desactivar = !this.estaInactivo(u);
+    const quien = `${u.nombre} ${u.apellidoPaterno} (${u.correo})`;
+    const aviso = desactivar
+      ? `¿Desactivar a ${quien}?\n\nNo podrá iniciar sesión ni recibirá alertas de sus pacientes. ` +
+        `Sus datos y su historial se conservan, y puedes rehabilitarlo cuando quieras.`
+      : `¿Habilitar a ${quien}?\n\nVolverá a poder iniciar sesión y a recibir alertas.`;
+    if (!confirm(aviso)) return;
+
+    this.cambiando.set(u.idUsuario);
+    try {
+      await this.store.cambiarEstadoUsuario(u.idUsuario, desactivar ? 'INACTIVO' : 'ACTIVO');
+    } catch {
+      alert('No se pudo cambiar el estado del usuario. Intenta nuevamente.');
+    } finally {
+      this.cambiando.set(null);
+    }
   }
 
   pacientesAsignados(idUsuario: number): PacienteDTO[] {
