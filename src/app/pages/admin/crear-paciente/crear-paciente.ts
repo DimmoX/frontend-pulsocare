@@ -6,7 +6,12 @@ import { lucideCheck, lucideHeartHandshake, lucideUserRound } from '@ng-icons/lu
 import { Topbar } from '../../../shared/topbar/topbar';
 import { AdminStore } from '../admin-store';
 import { AdminTabs } from '../admin-tabs/admin-tabs';
-import { edadDesdeFechaNacimiento, generoDesdeSexo, PacienteDTO } from '../../../core/models/paciente.dto';
+import {
+  edadDesdeFechaNacimiento,
+  estaDadoDeAlta,
+  generoDesdeSexo,
+  PacienteDTO,
+} from '../../../core/models/paciente.dto';
 
 const SEXOS: { valor: 'M' | 'F'; etiqueta: string }[] = [
   { valor: 'M', etiqueta: 'Masculino' },
@@ -118,12 +123,29 @@ const SEXOS: { valor: 'M' | 'F'; etiqueta: string }[] = [
                 <span class="flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary-dark)] shrink-0">
                   <ng-icon name="lucideHeartHandshake" size="16" />
                 </span>
-                <div class="flex flex-col gap-0.5 min-w-0">
+                <div class="flex flex-col gap-0.5 min-w-0 flex-1">
                   <span class="font-semibold text-sm text-[var(--color-ink)] truncate">
                     {{ p.nombre }} {{ p.apellidoPaterno }} {{ p.apellidoMaterno }}
                   </span>
                   <span class="text-xs text-[var(--color-ink-soft)]">{{ edad(p) }} años · {{ genero(p) }}</span>
                 </div>
+
+                @if (estaDeAlta(p)) {
+                  <span class="shrink-0 font-display text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-[var(--color-surface-sunken)] text-[var(--color-ink-soft)]">
+                    De alta
+                  </span>
+                }
+
+                <button
+                  type="button"
+                  (click)="alternarEstado(p)"
+                  [disabled]="cambiando() === p.idPaciente"
+                  [class]="estaDeAlta(p)
+                    ? 'shrink-0 text-xs font-semibold cursor-pointer bg-transparent border-none px-1 text-[var(--color-primary)] disabled:opacity-40'
+                    : 'shrink-0 text-xs font-semibold cursor-pointer bg-transparent border-none px-1 text-[var(--color-status-critical)] disabled:opacity-40'"
+                >
+                  {{ estaDeAlta(p) ? 'Reactivar' : 'Dar de alta' }}
+                </button>
               </li>
             }
           </ul>
@@ -148,6 +170,9 @@ export class CrearPaciente implements OnInit {
   estaCargando = signal(false);
   pacientes = this.store.pacientes;
 
+  /** Id del paciente cuyo estado se esta cambiando: evita doble clic mientras responde. */
+  cambiando = signal<number | null>(null);
+
   form = this.fb.group({
     nombre: this.fb.control('', Validators.required),
     apellidoPaterno: this.fb.control('', Validators.required),
@@ -168,6 +193,33 @@ export class CrearPaciente implements OnInit {
 
   genero(p: PacienteDTO): string {
     return generoDesdeSexo(p.sexo);
+  }
+
+  estaDeAlta(p: PacienteDTO): boolean {
+    return estaDadoDeAlta(p);
+  }
+
+  /**
+   * Da de alta a un paciente (cierra el monitoreo) o lo reactiva. Se confirma porque
+   * cambia lo que reproduce el replayer y lo que ve el medico. No se borra nada.
+   */
+  async alternarEstado(p: PacienteDTO) {
+    const darDeAlta = !this.estaDeAlta(p);
+    const quien = `${p.nombre} ${p.apellidoPaterno}`;
+    const aviso = darDeAlta
+      ? `¿Dar de alta a ${quien}?\n\nDejará de monitorearse: no se generarán nuevas lecturas. ` +
+        `Su historial se conserva y puedes reactivarlo cuando quieras.`
+      : `¿Reactivar el monitoreo de ${quien}?`;
+    if (!confirm(aviso)) return;
+
+    this.cambiando.set(p.idPaciente);
+    try {
+      await this.store.cambiarEstadoPaciente(p.idPaciente, darDeAlta ? 'ALTA' : 'ESTABLE');
+    } catch {
+      alert('No se pudo cambiar el estado del paciente. Intenta nuevamente.');
+    } finally {
+      this.cambiando.set(null);
+    }
   }
 
   mostrarError(control: keyof typeof this.form.controls): boolean {

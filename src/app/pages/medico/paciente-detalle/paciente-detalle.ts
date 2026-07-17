@@ -3,16 +3,17 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideHistory } from '@ng-icons/lucide';
+import { lucideBedSingle, lucideHistory } from '@ng-icons/lucide';
 import { AdminStore } from '../../admin/admin-store';
 import { AuthStore } from '../../../core/services/auth.store';
+import { estaDadoDeAlta, PacienteDTO } from '../../../core/models/paciente.dto';
 import { Topbar } from '../../../shared/topbar/topbar';
 import { VitalsBoard } from '../../../shared/vitals-board/vitals-board';
 
 @Component({
   selector: 'app-paciente-detalle',
   imports: [Topbar, VitalsBoard, NgIcon],
-  viewProviders: [provideIcons({ lucideHistory })],
+  viewProviders: [provideIcons({ lucideHistory, lucideBedSingle })],
   template: `
     @if (paciente(); as p) {
       <app-topbar
@@ -24,7 +25,18 @@ import { VitalsBoard } from '../../../shared/vitals-board/vitals-board';
         (cerrarSesion)="cerrarSesion()"
       />
 
-      <main class="max-w-6xl mx-auto p-7">
+      <main class="max-w-6xl mx-auto p-7 flex flex-col gap-5">
+        @if (estaDeAlta(p)) {
+          <div class="flex items-center gap-2.5 p-4 px-5 rounded-2xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)] text-sm text-[var(--color-ink-soft)]">
+            <ng-icon name="lucideBedSingle" size="18" />
+            <span>
+              <strong class="text-[var(--color-ink)]">Sin monitoreo activo.</strong>
+              Este paciente fue dado de alta; las lecturas de abajo son las últimas
+              registradas y no se están actualizando.
+            </span>
+          </div>
+        }
+
         <!-- El acceso al historico se proyecta dentro de la ficha del paciente, junto
              al "actualizado hace": es una accion sobre ese paciente y se ve sin bajar
              por los tiles. Va aqui y no dentro del vitals-board porque ese componente
@@ -84,6 +96,10 @@ export class PacienteDetalle implements OnInit {
       await this.adminStore.cargarPacientesDeUsuario(idUsuario);
     }
     this.cargando.set(false);
+  }
+
+  estaDeAlta(p: PacienteDTO): boolean {
+    return estaDadoDeAlta(p);
   }
 
   verHistorico(idPaciente: number) {
