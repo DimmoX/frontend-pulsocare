@@ -113,6 +113,18 @@ export class AdminStore {
     await this.cargarPacientesDeUsuario(idUsuario);
   }
 
+  /**
+   * Da de baja o rehabilita a un usuario. No se borra: siete claves foraneas apuntan a
+   * PC_USUARIO, y en salud no se elimina el rastro de quien reconocio una alerta. Al
+   * quedar INACTIVO deja de poder entrar y de recibir notificaciones.
+   */
+  async cambiarEstadoUsuario(idUsuario: number, estado: 'ACTIVO' | 'INACTIVO'): Promise<void> {
+    await firstValueFrom(
+      this.http.put<UsuarioDTO>(`${this.apiUrl}/auth/usuarios/${idUsuario}/estado`, { estado })
+    );
+    await this.cargarUsuarios();
+  }
+
   async cargarCuidadoresDePaciente(idPaciente: number): Promise<CuidadorDTO[]> {
     return firstValueFrom(
       this.http.get<CuidadorDTO[]>(`${this.apiUrl}/pacientes/${idPaciente}/asignaciones`)
