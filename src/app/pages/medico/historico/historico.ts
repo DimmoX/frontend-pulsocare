@@ -90,7 +90,7 @@ const HORAS = Array.from({ length: 24 }, (_, h) => ({
         [subtitulo]="p.nombre + ' ' + p.apellidoPaterno + ' ' + p.apellidoMaterno"
         [usuario]="nombreUsuario()"
         rol="Médico"
-        [volver]="true"
+        [volverA]="'/medico/pacientes/' + p.idPaciente"
         (cerrarSesion)="cerrarSesion()"
       />
 

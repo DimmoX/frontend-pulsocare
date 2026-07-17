@@ -20,23 +20,26 @@ import { VitalsBoard } from '../../../shared/vitals-board/vitals-board';
         [subtitulo]="p.nombre + ' ' + p.apellidoPaterno + ' ' + p.apellidoMaterno"
         [usuario]="nombreUsuario()"
         rol="Médico"
-        [volver]="true"
+        volverA="/medico/pacientes"
         (cerrarSesion)="cerrarSesion()"
       />
 
-      <main class="max-w-6xl mx-auto p-7 flex flex-col gap-5">
-        <app-vitals-board [paciente]="p" />
-
-        <div class="flex justify-end">
+      <main class="max-w-6xl mx-auto p-7">
+        <!-- El acceso al historico se proyecta dentro de la ficha del paciente, junto
+             al "actualizado hace": es una accion sobre ese paciente y se ve sin bajar
+             por los tiles. Va aqui y no dentro del vitals-board porque ese componente
+             lo comparte la vista del familiar, que no tiene acceso al historico. -->
+        <app-vitals-board [paciente]="p">
           <button
+            acciones
             type="button"
             (click)="verHistorico(p.idPaciente)"
-            class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-primary)] font-semibold text-sm cursor-pointer transition-colors hover:border-[var(--color-primary)]/40"
+            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)] text-[var(--color-primary)] font-semibold text-xs cursor-pointer transition-colors hover:border-[var(--color-primary)]/40 whitespace-nowrap"
           >
-            <ng-icon name="lucideHistory" size="16" />
+            <ng-icon name="lucideHistory" size="14" />
             Ver histórico de lecturas
           </button>
-        </div>
+        </app-vitals-board>
       </main>
     } @else if (cargando()) {
       <main class="max-w-6xl mx-auto p-7 flex items-center justify-center min-h-[60vh] text-[var(--color-ink-soft)]">
