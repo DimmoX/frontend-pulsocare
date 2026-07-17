@@ -8,6 +8,7 @@ import { CrearPaciente } from './pages/admin/crear-paciente/crear-paciente';
 import { SignosVitalesFamiliar } from './pages/familiar/signos-vitales/signos-vitales';
 import { Pacientes } from './pages/medico/pacientes/pacientes';
 import { PacienteDetalle } from './pages/medico/paciente-detalle/paciente-detalle';
+import { Historico } from './pages/medico/historico/historico';
 
 export const routes: Routes = [
   { path: '', component: Login },
@@ -27,7 +28,8 @@ export const routes: Routes = [
     children: [
       { path: '', redirectTo: 'pacientes', pathMatch: 'full' },
       { path: 'pacientes', component: Pacientes },
-      { path: 'pacientes/:id', component: PacienteDetalle }
+      { path: 'pacientes/:id', component: PacienteDetalle },
+      { path: 'pacientes/:id/historico', component: Historico }
     ]
   },
   {
