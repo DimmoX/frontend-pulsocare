@@ -22,8 +22,15 @@ export class ConsultasService {
     );
   }
 
-  alertas(idPaciente: number): Promise<AlertaDTO[]> {
-    return firstValueFrom(this.http.get<AlertaDTO[]>(`${this.apiUrl}/alertas`, { params: { idPaciente } }));
+  /**
+   * Alertas recientes del paciente. El limite es obligatorio en la practica: sin el,
+   * un paciente con meses de monitoreo devuelve decenas de miles de filas y la
+   * llamada tarda minutos.
+   */
+  alertas(idPaciente: number, limite = 50): Promise<AlertaDTO[]> {
+    return firstValueFrom(
+      this.http.get<AlertaDTO[]>(`${this.apiUrl}/alertas`, { params: { idPaciente, limite } })
+    );
   }
 
   reconocer(idAlerta: number, idUsuario: number): Promise<AlertaDTO> {

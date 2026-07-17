@@ -135,6 +135,7 @@ export class VitalsBoard {
   });
 
   private intervalo?: ReturnType<typeof setInterval>;
+  private cargaEnCurso = false;
 
   constructor() {
     effect((onCleanup) => {
@@ -156,6 +157,19 @@ export class VitalsBoard {
   }
 
   private async cargarTodo(idPaciente: number) {
+    // El refresco es por intervalo fijo: si una carga tarda mas que el intervalo,
+    // sin esta guarda se acumulan peticiones en vuelo, cada una reteniendo una
+    // conexion del pool del backend hasta agotarlo.
+    if (this.cargaEnCurso) return;
+    this.cargaEnCurso = true;
+    try {
+      await this.cargarDatos(idPaciente);
+    } finally {
+      this.cargaEnCurso = false;
+    }
+  }
+
+  private async cargarDatos(idPaciente: number) {
     const [lecturasResultado, alertasResultado, umbralesResultado] = await Promise.allSettled([
       this.consultas.ultimas(idPaciente),
       this.consultas.alertas(idPaciente),

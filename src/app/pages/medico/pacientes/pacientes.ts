@@ -106,8 +106,11 @@ export class Pacientes implements OnInit {
       return;
     }
     await this.adminStore.cargarPacientesDeUsuario(idUsuario);
-    await this.cargarEstados();
+    // Las tarjetas se pintan apenas hay pacientes. Los estados solo deciden el color
+    // del chip, asi que se rellenan despues: no tiene sentido retener toda la vista
+    // esperando las alertas de cada paciente.
     this.cargando.set(false);
+    void this.cargarEstados();
   }
 
   private async cargarEstados() {

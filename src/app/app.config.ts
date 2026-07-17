@@ -25,8 +25,10 @@ export const appConfig: ApplicationConfig = {
             clientId: 'bbc1023b-e89e-4fd1-925c-141f8d7d148c',
             authority: 'https://pulsocareduoc.b2clogin.com/pulsocareduoc.onmicrosoft.com/B2C_1_SIGN_IN',
             knownAuthorities: ['pulsocareduoc.b2clogin.com'],
-            redirectUri: 'https://main.d3kr9b0z736ylh.amplifyapp.com/',
-            postLogoutRedirectUri: 'https://main.d3kr9b0z736ylh.amplifyapp.com/'
+            // El registro de B2C tiene habilitadas la URL de Amplify y la de
+            // localhost:4200; se envia la del origen desde el que se abrio la app.
+            redirectUri: `${window.location.origin}/`,
+            postLogoutRedirectUri: `${window.location.origin}/`
           },
           cache: {
             cacheLocation: 'localStorage'
