@@ -24,21 +24,8 @@ export class AuthStore {
   rolClave = computed<RolClave | null>(() => claveDesdeNombreRol(this.usuario()?.rol));
   estaSincronizado = computed(() => this.usuario() !== null);
 
-  private sincronizacionEnCurso: Promise<UsuarioDTO> | null = null;
-
-  /**
-   * Se llama una vez por sesión, justo después del LOGIN_SUCCESS de MSAL. En una
-   * recarga, el guard de rol y el ngOnInit de app.ts la piden casi a la vez: se
-   * reutiliza la llamada en vuelo para no hacer dos POST identicos a /auth/registro.
-   */
+  /** Se llama una vez por sesión, justo después del LOGIN_SUCCESS de MSAL. */
   async sincronizarConBackend(claims: ClaimsEntraId): Promise<UsuarioDTO> {
-    this.sincronizacionEnCurso ??= this.pedirSincronizacion(claims).finally(() => {
-      this.sincronizacionEnCurso = null;
-    });
-    return this.sincronizacionEnCurso;
-  }
-
-  private async pedirSincronizacion(claims: ClaimsEntraId): Promise<UsuarioDTO> {
     const rolClave = rolDesdeJobTitle(claims.jobTitle);
 
     const payload = {
