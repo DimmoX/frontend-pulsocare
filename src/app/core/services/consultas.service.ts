@@ -78,4 +78,15 @@ export class ConsultasService {
   umbrales(idPaciente: number): Promise<UmbralDTO[]> {
     return firstValueFrom(this.http.get<UmbralDTO[]>(`${this.apiUrl}/umbrales`, { params: { idPaciente } }));
   }
+
+  /**
+   * Deja constancia en la bitácora de que un usuario accedió a un dato clínico. Es
+   * auditoría best-effort: si el registro falla, no debe interrumpir lo que el médico
+   * está haciendo, así que quien la llame la trata como fire-and-forget.
+   */
+  registrarAcceso(idUsuario: number, idPaciente: number, accion: string, detalle?: string): Promise<void> {
+    return firstValueFrom(
+      this.http.post<void>(`${this.apiUrl}/bitacora`, { idUsuario, idPaciente, accion, detalle })
+    );
+  }
 }

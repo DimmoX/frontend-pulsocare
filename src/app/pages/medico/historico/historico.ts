@@ -421,6 +421,15 @@ export class Historico implements OnInit {
       this.cargando.set(false);
       return;
     }
+
+    // Auditoria: dejar constancia de que este medico abrio el historico de este
+    // paciente. Fire-and-forget: si la bitacora falla, no debe impedir ver el historico.
+    if (idUsuario) {
+      this.consultas
+        .registrarAcceso(idUsuario, this.idPacienteRuta(), 'VER_HISTORICO')
+        .catch(() => {});
+    }
+
     // Los umbrales definen el estado de cada fila; si fallan, se cae al rango por
     // defecto del catalogo de signos y la tabla igual se muestra.
     this.consultas
