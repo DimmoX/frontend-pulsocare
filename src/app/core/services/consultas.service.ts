@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AlertaDTO, LecturaDTO } from '../models/consultas.dto';
 import { UmbralDTO } from '../models/umbral.dto';
+import { PuntajeNews2DTO } from '../models/news2.dto';
 
 /** Una pagina de lecturas y el total de filas que cumplen los filtros. */
 export interface PaginaLecturas {
@@ -77,6 +78,16 @@ export class ConsultasService {
 
   umbrales(idPaciente: number): Promise<UmbralDTO[]> {
     return firstValueFrom(this.http.get<UmbralDTO[]>(`${this.apiUrl}/umbrales`, { params: { idPaciente } }));
+  }
+
+  /**
+   * Escala de alerta temprana NEWS2 del paciente, calculada en el backend a partir de
+   * sus últimas lecturas. Es una señal de apoyo para el médico, no un diagnóstico.
+   */
+  news2(idPaciente: number): Promise<PuntajeNews2DTO> {
+    return firstValueFrom(
+      this.http.get<PuntajeNews2DTO>(`${this.apiUrl}/pacientes/${idPaciente}/news2`)
+    );
   }
 
   /**
