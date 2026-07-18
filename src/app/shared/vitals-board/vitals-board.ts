@@ -63,6 +63,11 @@ const ESTADO_CLASES: Record<EstadoSigno, { borde: string; chip: string }> = {
         </div>
       </div>
 
+      <!-- Mismo criterio que [acciones]: la vista del medico proyecta aqui la escala
+           NEWS2, entre la ficha y las tarjetas, y la del familiar no proyecta nada
+           porque un puntaje de riesgo clinico sin contexto no le corresponde leer. -->
+      <ng-content select="[escala]" />
+
       @if (cargando()) {
         <p class="text-sm text-[var(--color-ink-soft)]">Cargando signos vitales…</p>
       } @else if (lecturas().length === 0) {
