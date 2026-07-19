@@ -1,8 +1,9 @@
 import { ApplicationConfig, importProvidersFrom, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient, withInterceptorsFromDi, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { routes } from './app.routes';
-import { MsalModule, MsalInterceptor, MsalGuard, MsalService, MsalBroadcastService } from '@azure/msal-angular';
+import { MsalModule, MsalGuard, MsalService, MsalBroadcastService } from '@azure/msal-angular';
+import { tokenInterceptor } from './core/auth/token.interceptor';
 import { PublicClientApplication, InteractionType } from '@azure/msal-browser';
 import { environment } from '../environments/environment';
 
@@ -26,13 +27,8 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
-    provideHttpClient(withInterceptorsFromDi()),
+    provideHttpClient(withInterceptors([tokenInterceptor])),
 
-    {
-      provide: HTTP_INTERCEPTORS,
-      useClass: MsalInterceptor,
-      multi: true
-    },
 
     importProvidersFrom(
       MsalModule.forRoot(
