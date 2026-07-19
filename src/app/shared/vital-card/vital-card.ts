@@ -4,6 +4,7 @@ import {
   lucideActivity,
   lucideDroplets,
   lucideHeartPulse,
+  lucideBrain,
   lucideThermometer,
   lucideWind,
 } from '@ng-icons/lucide';
@@ -38,7 +39,7 @@ const ESTADO_CLASES: Record<EstadoSigno, { card: string; icon: string; badge: st
   selector: 'app-vital-card',
   imports: [NgIcon],
   viewProviders: [
-    provideIcons({ lucideHeartPulse, lucideDroplets, lucideActivity, lucideThermometer, lucideWind }),
+    provideIcons({ lucideHeartPulse, lucideDroplets, lucideActivity, lucideThermometer, lucideWind, lucideBrain }),
   ],
   template: `
     <article
@@ -55,15 +56,13 @@ const ESTADO_CLASES: Record<EstadoSigno, { card: string; icon: string; badge: st
       </header>
 
       <div class="flex items-baseline gap-1.5">
-        <span class="font-mono text-5xl font-semibold leading-none text-[var(--color-ink)]">{{ lectura().valorNum }}</span>
-        <span class="font-mono text-lg text-[var(--color-ink-soft)]">{{ lectura().unidad }}</span>
+        <span class="font-mono text-5xl font-semibold leading-none text-[var(--color-ink)]">{{ presentacion().valor }}</span>
+        <span class="font-mono text-lg text-[var(--color-ink-soft)]">{{ presentacion().unidad }}</span>
       </div>
 
       <footer class="flex flex-col gap-0.5">
         <span class="font-semibold text-sm text-[var(--color-ink)]">{{ definicion().etiqueta }}</span>
-        <span class="text-xs text-[var(--color-ink-soft)]">
-          Rango normal: {{ rango().min }}–{{ rango().max }} {{ lectura().unidad }}
-        </span>
+        <span class="text-xs text-[var(--color-ink-soft)]">{{ textoRango() }}</span>
       </footer>
     </article>
   `,
@@ -74,6 +73,20 @@ export class VitalCard {
 
   definicion = computed(() => definicionSigno(this.lectura().signoCodigo));
 
+  /** Un signo categorico se muestra como etiqueta ("Sí"/"No"), no como numero crudo. */
+  presentacion = computed(() => {
+    const formato = this.definicion().formatoValor;
+    const l = this.lectura();
+    return formato ? formato(l.valorNum) : { valor: String(l.valorNum), unidad: l.unidad };
+  });
+
+  textoRango = computed(() => {
+    const propio = this.definicion().textoRango;
+    if (propio) return propio;
+    const r = this.rango();
+    return `Rango normal: ${r.min}–${r.max} ${this.lectura().unidad}`;
+  });
+
   rango = computed(() => {
     const u = this.umbral();
     return u ? { min: u.valorMin, max: u.valorMax } : this.definicion().rangoDefault;
@@ -82,6 +95,11 @@ export class VitalCard {
   estado = computed<EstadoSigno>(() => {
     const valor = this.lectura().valorNum;
     const u = this.umbral();
+
+    // Un signo categorico define su propio estado: comparar contra un rango continuo
+    // daria "critico" a un paciente que solo tiene puesta una canula de oxigeno.
+    const propio = this.definicion().estadoDe;
+    if (propio) return propio(valor);
 
     if (u) {
       if (valor < u.valorMinCritico || valor > u.valorMaxCritico) return 'critico';
