@@ -2,14 +2,15 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideHeartPulse, lucideLock, lucideMail } from '@ng-icons/lucide';
+import { lucideHeartPulse, lucideLock, lucideMail, lucideTriangleAlert } from '@ng-icons/lucide';
 import { EcgTrace } from '../../shared/ecg-trace/ecg-trace';
 import { MsalService } from '@azure/msal-angular';
+import { AuthStore } from '../../core/services/auth.store';
 
 @Component({
   selector: 'app-login',
   imports: [NgIcon, EcgTrace],
-  viewProviders: [provideIcons({ lucideHeartPulse })],
+  viewProviders: [provideIcons({ lucideHeartPulse, lucideTriangleAlert })],
   template: `
     <div class="min-h-dvh grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] bg-[var(--color-bg)]">
       <!-- PANEL IZQUIERDO -->
@@ -39,6 +40,16 @@ import { MsalService } from '@azure/msal-angular';
             </p>
           </div>
 
+          @if (motivoRechazo(); as motivo) {
+            <div
+              role="alert"
+              class="flex items-start gap-2 mt-4 p-3.5 px-4 rounded-xl bg-[var(--color-status-critical-soft)] border border-[var(--color-status-critical)]/30 text-sm text-[var(--color-status-critical)]"
+            >
+              <ng-icon name="lucideTriangleAlert" size="17" class="mt-0.5 shrink-0" />
+              <span>{{ motivo }}</span>
+            </div>
+          }
+
           <div class="flex flex-col gap-4 mt-2">
             <button
               (click)="iniciarSesion()"
@@ -53,8 +64,15 @@ import { MsalService } from '@azure/msal-angular';
 })
 export class Login {
   private authService = inject(MsalService);
+  private authStore = inject(AuthStore);
+
+  /** Por qué se rechazó la sesión anterior, si es que la hubo. */
+  motivoRechazo = this.authStore.motivoRechazo.asReadonly();
 
   iniciarSesion() {
+    // Se limpia antes de reintentar: el aviso es de la sesión anterior y dejarlo
+    // visible durante el nuevo intento haría creer que volvió a fallar.
+    this.authStore.motivoRechazo.set(null);
     this.authService.loginRedirect();
   }
 }
