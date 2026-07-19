@@ -7,7 +7,7 @@ import { UmbralDTO } from '../../core/models/umbral.dto';
 import { PacienteDTO, edadDesdeFechaNacimiento } from '../../core/models/paciente.dto';
 import { VitalCard } from '../vital-card/vital-card';
 
-const ORDEN_SIGNOS = ['FC', 'SPO2', 'PAS', 'PAD', 'TEMP', 'FR'];
+const ORDEN_SIGNOS = ['FC', 'SPO2', 'PAS', 'PAD', 'TEMP', 'FR', 'GCS', 'O2SUP'];
 const INTERVALO_REFRESCO_MS = 8000;
 
 const RESUMEN: Record<EstadoSigno, { texto: string; detalle: string }> = {
@@ -63,6 +63,11 @@ const ESTADO_CLASES: Record<EstadoSigno, { borde: string; chip: string }> = {
         </div>
       </div>
 
+      <!-- Mismo criterio que [acciones]: la vista del medico proyecta aqui la escala
+           NEWS2, entre la ficha y las tarjetas, y la del familiar no proyecta nada
+           porque un puntaje de riesgo clinico sin contexto no le corresponde leer. -->
+      <ng-content select="[escala]" />
+
       @if (cargando()) {
         <p class="text-sm text-[var(--color-ink-soft)]">Cargando signos vitales…</p>
       } @else if (lecturas().length === 0) {
@@ -108,6 +113,10 @@ export class VitalsBoard {
   private estadoDeLectura(lectura: LecturaDTO): EstadoSigno {
     const valor = lectura.valorNum;
     const u = this.umbralDe(lectura.idSignoVital);
+
+    // Igual que en la tarjeta: los signos categoricos traen su propia regla.
+    const propio = definicionSigno(lectura.signoCodigo).estadoDe;
+    if (propio) return propio(valor);
 
     if (u) {
       if (valor < u.valorMinCritico || valor > u.valorMaxCritico) return 'critico';

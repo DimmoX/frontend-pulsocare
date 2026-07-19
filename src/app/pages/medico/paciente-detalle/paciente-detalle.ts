@@ -9,10 +9,11 @@ import { AuthStore } from '../../../core/services/auth.store';
 import { estaDadoDeAlta, PacienteDTO } from '../../../core/models/paciente.dto';
 import { Topbar } from '../../../shared/topbar/topbar';
 import { VitalsBoard } from '../../../shared/vitals-board/vitals-board';
+import { News2Panel } from '../../../shared/news2-panel/news2-panel';
 
 @Component({
   selector: 'app-paciente-detalle',
-  imports: [Topbar, VitalsBoard, NgIcon],
+  imports: [Topbar, VitalsBoard, NgIcon, News2Panel],
   viewProviders: [provideIcons({ lucideHistory, lucideBedSingle })],
   template: `
     @if (paciente(); as p) {
@@ -37,10 +38,12 @@ import { VitalsBoard } from '../../../shared/vitals-board/vitals-board';
           </div>
         }
 
-        <!-- El acceso al historico se proyecta en la ficha del paciente para que quede
-             a la vista. Va aqui y no en vitals-board porque ese componente lo comparte
-             la vista del familiar, que no accede al historico. -->
+        <!-- El acceso al historico y la escala NEWS2 se proyectan dentro del tablero
+             de signos vitales para que queden junto a los datos que explican. Van aqui
+             y no dentro de vitals-board porque ese componente lo comparte la vista del
+             familiar, que no accede al historico ni al puntaje de riesgo. -->
         <app-vitals-board [paciente]="p">
+          <app-news2-panel escala [idPaciente]="p.idPaciente" />
           <button
             acciones
             type="button"

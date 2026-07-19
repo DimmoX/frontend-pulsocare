@@ -35,6 +35,15 @@ interface DefinicionSigno {
   icono: string;
   rangoDefault: { min: number; max: number };
   margenDefault: number;
+  /**
+   * Los tres campos siguientes son para los signos CATEGORICOS (conciencia, oxigeno):
+   * no son magnitudes continuas, asi que la heuristica de rangos les asigna estados
+   * equivocados y mostrarlos como numero crudo no dice nada. Un signo continuo no los
+   * define y se comporta como siempre.
+   */
+  formatoValor?: (v: number) => { valor: string; unidad: string };
+  textoRango?: string;
+  estadoDe?: (v: number) => EstadoSigno;
 }
 
 const CATALOGO_SIGNOS: Record<string, DefinicionSigno> = {
@@ -44,6 +53,31 @@ const CATALOGO_SIGNOS: Record<string, DefinicionSigno> = {
   PAD: { etiqueta: 'Presión diastólica', icono: 'lucideActivity', rangoDefault: { min: 60, max: 90 }, margenDefault: 6 },
   TEMP: { etiqueta: 'Temperatura', icono: 'lucideThermometer', rangoDefault: { min: 35.5, max: 37.5 }, margenDefault: 0.4 },
   FR: { etiqueta: 'Frecuencia respiratoria', icono: 'lucideWind', rangoDefault: { min: 12, max: 20 }, margenDefault: 2 },
+  GCS: {
+    etiqueta: 'Nivel de conciencia',
+    icono: 'lucideBrain',
+    rangoDefault: { min: 15, max: 15 },
+    margenDefault: 0,
+    // Glasgow 3 a 15. NEWS2 solo distingue "alerta" (15) de "no alerta", pero en la
+    // tarjeta si vale graduar: el medico necesita ver si es una somnolencia leve o
+    // un paciente que no responde.
+    formatoValor: (v) => ({ valor: String(v), unidad: '/ 15' }),
+    textoRango: 'Rango normal: 15 de 15 (alerta)',
+    estadoDe: (v) => (v >= 15 ? 'ok' : v >= 13 ? 'alerta' : 'critico'),
+  },
+  O2SUP: {
+    etiqueta: 'Oxígeno suplementario',
+    icono: 'lucideWind',
+    rangoDefault: { min: 0, max: 0 },
+    margenDefault: 0,
+    formatoValor: (v) => ({ valor: v > 0 ? 'Sí' : 'No', unidad: '' }),
+    // "Rango normal:" no es decorativo aqui: sin ese prefijo, la linea se lee como
+    // una descripcion del paciente y contradice el valor de arriba.
+    textoRango: 'Rango normal: sin oxígeno',
+    // Necesitar oxigeno no es una urgencia por si solo, pero nunca es "normal":
+    // por eso atencion y no critico.
+    estadoDe: (v) => (v > 0 ? 'alerta' : 'ok'),
+  },
 };
 
 export function definicionSigno(signoCodigo: string): DefinicionSigno {
