@@ -62,7 +62,7 @@ const CATALOGO_SIGNOS: Record<string, DefinicionSigno> = {
     // tarjeta si vale graduar: el medico necesita ver si es una somnolencia leve o
     // un paciente que no responde.
     formatoValor: (v) => ({ valor: String(v), unidad: '/ 15' }),
-    textoRango: 'Alerta: 15 · alterado bajo 15',
+    textoRango: 'Rango normal: 15 de 15 (alerta)',
     estadoDe: (v) => (v >= 15 ? 'ok' : v >= 13 ? 'alerta' : 'critico'),
   },
   O2SUP: {
@@ -71,7 +71,9 @@ const CATALOGO_SIGNOS: Record<string, DefinicionSigno> = {
     rangoDefault: { min: 0, max: 0 },
     margenDefault: 0,
     formatoValor: (v) => ({ valor: v > 0 ? 'Sí' : 'No', unidad: '' }),
-    textoRango: 'Normal: respira aire ambiente',
+    // "Rango normal:" no es decorativo aqui: sin ese prefijo, la linea se lee como
+    // una descripcion del paciente y contradice el valor de arriba.
+    textoRango: 'Rango normal: sin oxígeno',
     // Necesitar oxigeno no es una urgencia por si solo, pero nunca es "normal":
     // por eso atencion y no critico.
     estadoDe: (v) => (v > 0 ? 'alerta' : 'ok'),
