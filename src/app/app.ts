@@ -6,10 +6,11 @@ import { filter } from 'rxjs';
 import { AuthStore } from './core/services/auth.store';
 import { ROL_A_RUTA, rolDesdeJobTitle } from './core/auth/roles.config';
 import { environment } from '../environments/environment';
+import { Notificaciones } from './shared/notificaciones/notificaciones';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, Notificaciones],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
