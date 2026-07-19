@@ -11,6 +11,7 @@ import { ConsultasService } from '../../../core/services/consultas.service';
 import { definicionSigno, SIGNOS_MONITOREADOS } from '../../../core/models/consultas.dto';
 import { UmbralDTO } from '../../../core/models/umbral.dto';
 import { Topbar } from '../../../shared/topbar/topbar';
+import { NotificacionesService } from '../../../core/services/notificaciones.service';
 
 /** Lo que se edita en pantalla para un signo. */
 interface FilaUmbral {
@@ -23,11 +24,11 @@ interface FilaUmbral {
   max: number | null;
   minCritico: number | null;
   maxCritico: number | null;
-  /** Rango poblacional, para mostrar de que se esta apartando el medico. */
+  /** Rangos por defecto, para poder restaurarlos y mostrar de que se aparta el medico. */
   porDefecto: { min: number; max: number };
+  criticoPorDefecto: { min: number; max: number };
   guardando: boolean;
   error: string | null;
-  guardado: boolean;
 }
 
 @Component({
@@ -64,12 +65,12 @@ interface FilaUmbral {
               monitoreo lo toma dentro del minuto siguiente.
             </p>
             <p class="m-0">
-              <strong class="text-[var(--color-ink)]">Cómo volver al valor por defecto.</strong>
-              Deja el campo vacío y guarda para que ese límite vuelva al valor por
-              defecto, o presiona el botón
+              <strong class="text-[var(--color-ink)]">Cómo volver a los valores por defecto.</strong>
+              Presiona el botón
               <ng-icon name="lucideRotateCcw" size="13" class="align-middle" />
-              de la fila para devolver el signo completo a sus rangos por defecto. Ese
-              botón aparece solo cuando el signo tiene límites propios.
+              de la fila: los campos vuelven a mostrar los rangos por defecto y el signo
+              deja de usar límites propios. Ese botón aparece solo cuando el signo tiene
+              límites personalizados.
             </p>
           </div>
         </div>
@@ -107,9 +108,6 @@ interface FilaUmbral {
                           <span>{{ f.error }}</span>
                         </div>
                       }
-                      @if (f.guardado) {
-                        <div class="mt-1.5 text-xs text-[var(--color-status-ok)]">Guardado.</div>
-                      }
                     </td>
                     <td class="p-4"><input type="number" [(ngModel)]="f.min" [class]="claseInput" /></td>
                     <td class="p-4"><input type="number" [(ngModel)]="f.max" [class]="claseInput" /></td>
@@ -145,9 +143,8 @@ interface FilaUmbral {
           </div>
 
           <p class="m-0 text-xs text-[var(--color-ink-soft)] leading-relaxed">
-            Deja un campo vacío para que ese límite use el valor por defecto. El rango
-            crítico debe contener al normal: un valor no puede estar dentro de lo
-            aceptable y ser crítico a la vez.
+            Los cuatro límites son obligatorios. El rango crítico debe contener al
+            normal: un valor no puede estar dentro de lo aceptable y ser crítico a la vez.
           </p>
         }
       </main>
@@ -168,6 +165,7 @@ export class Umbrales implements OnInit {
   private adminStore = inject(AdminStore);
   private authStore = inject(AuthStore);
   private consultas = inject(ConsultasService);
+  private avisos = inject(NotificacionesService);
 
   protected readonly claseInput =
     'w-24 px-2.5 py-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-ink)] text-sm';
@@ -208,7 +206,7 @@ export class Umbrales implements OnInit {
   private async cargarUmbrales(idPaciente: number) {
     let definidos: UmbralDTO[] = [];
     try {
-      definidos = (await this.consultas.umbrales(idPaciente)).filter((u) => u.vigente === 1);
+      definidos = await this.consultas.umbrales(idPaciente);
     } catch {
       // Sin umbrales propios la tabla igual sirve: se muestran los valores por defecto.
     }
@@ -217,19 +215,22 @@ export class Umbrales implements OnInit {
       SIGNOS_MONITOREADOS.map(({ id, codigo }) => {
         const definicion = definicionSigno(codigo);
         const propio = definidos.find((u) => u.idSignoVital === id);
+        // Los campos nunca quedan vacios: si el paciente no tiene umbral propio (o le
+        // falta algun limite) se muestra el valor por defecto, que es el que el sistema
+        // esta aplicando de verdad. Un campo en blanco no decia nada.
         return {
           idSignoVital: id,
           codigo,
           etiqueta: definicion.etiqueta,
           idUmbral: propio?.idUmbral ?? null,
-          min: propio?.valorMin ?? null,
-          max: propio?.valorMax ?? null,
-          minCritico: propio?.valorMinCritico ?? null,
-          maxCritico: propio?.valorMaxCritico ?? null,
+          min: propio?.valorMin ?? definicion.rangoDefault.min,
+          max: propio?.valorMax ?? definicion.rangoDefault.max,
+          minCritico: propio?.valorMinCritico ?? definicion.criticoDefault.min,
+          maxCritico: propio?.valorMaxCritico ?? definicion.criticoDefault.max,
           porDefecto: definicion.rangoDefault,
+          criticoPorDefecto: definicion.criticoDefault,
           guardando: false,
           error: null,
-          guardado: false,
         };
       })
     );
@@ -240,7 +241,18 @@ export class Umbrales implements OnInit {
     const p = this.paciente();
     if (!idUsuario || !p) return;
 
-    this.marcar(fila, { guardando: true, error: null, guardado: false });
+    // Los cuatro limites son obligatorios: un umbral a medias deja al sistema
+    // clasificando ese signo con una mezcla de valores propios y por defecto, que es
+    // imposible de razonar mirando la pantalla.
+    const faltantes = this.camposVacios(fila);
+    if (faltantes.length > 0) {
+      this.avisos.error(
+        `${fila.etiqueta}: falta completar ${faltantes.join(', ')}. Todos los límites son obligatorios.`
+      );
+      return;
+    }
+
+    this.marcar(fila, { guardando: true, error: null });
     const valores = {
       valorMin: this.numero(fila.min),
       valorMax: this.numero(fila.max),
@@ -260,9 +272,11 @@ export class Umbrales implements OnInit {
         });
         this.marcar(fila, { idUmbral: creado.idUmbral });
       }
-      this.marcar(fila, { guardado: true });
+      this.avisos.exito(`${fila.etiqueta}: límites guardados. Se aplican en el próximo minuto.`);
     } catch (e: unknown) {
-      this.marcar(fila, { error: this.mensajeDe(e) });
+      const mensaje = this.mensajeDe(e);
+      this.marcar(fila, { error: mensaje });
+      this.avisos.error(`${fila.etiqueta}: ${mensaje}`);
     } finally {
       this.marcar(fila, { guardando: false });
     }
@@ -272,25 +286,40 @@ export class Umbrales implements OnInit {
     const idUsuario = this.idUsuario();
     if (!idUsuario || !fila.idUmbral) return;
 
-    this.marcar(fila, { guardando: true, error: null, guardado: false });
+    this.marcar(fila, { guardando: true, error: null });
     try {
       await this.consultas.eliminarUmbral(fila.idUmbral, idUsuario);
+      // Se rellenan con los valores por defecto en vez de vaciarlos: son los que el
+      // sistema pasa a aplicar, y dejarlos en blanco hacia parecer que el signo se
+      // quedo sin limites.
       this.marcar(fila, {
         idUmbral: null,
-        min: null,
-        max: null,
-        minCritico: null,
-        maxCritico: null,
-        guardado: true,
+        min: fila.porDefecto.min,
+        max: fila.porDefecto.max,
+        minCritico: fila.criticoPorDefecto.min,
+        maxCritico: fila.criticoPorDefecto.max,
       });
+      this.avisos.exito(`${fila.etiqueta}: vuelve a sus valores por defecto.`);
     } catch (e: unknown) {
-      this.marcar(fila, { error: this.mensajeDe(e) });
+      const mensaje = this.mensajeDe(e);
+      this.marcar(fila, { error: mensaje });
+      this.avisos.error(`${fila.etiqueta}: ${mensaje}`);
     } finally {
       this.marcar(fila, { guardando: false });
     }
   }
 
-  /** Un campo vacio significa "usa el valor por defecto", no cero. */
+  /** Etiquetas de los limites que quedaron sin valor. */
+  private camposVacios(fila: FilaUmbral): string[] {
+    const revisar: [string, number | null][] = [
+      ['Mín. normal', fila.min],
+      ['Máx. normal', fila.max],
+      ['Mín. crítico', fila.minCritico],
+      ['Máx. crítico', fila.maxCritico],
+    ];
+    return revisar.filter(([, v]) => v === null || v === undefined || Number.isNaN(v)).map(([e]) => e);
+  }
+
   private numero(valor: number | null): number | null {
     return valor === null || Number.isNaN(valor) ? null : Number(valor);
   }

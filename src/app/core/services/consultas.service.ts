@@ -76,8 +76,19 @@ export class ConsultasService {
     return firstValueFrom(this.http.put<AlertaDTO>(`${this.apiUrl}/alertas/${idAlerta}/reconocer`, { idUsuario }));
   }
 
-  umbrales(idPaciente: number): Promise<UmbralDTO[]> {
-    return firstValueFrom(this.http.get<UmbralDTO[]>(`${this.apiUrl}/umbrales`, { params: { idPaciente } }));
+  /**
+   * Umbrales VIGENTES del paciente.
+   *
+   * El backend devuelve tambien los dados de baja (guarda el historial de ajustes), y
+   * quien los consumia con un .find() por signo se quedaba con el primero de la lista,
+   * que podia ser uno antiguo: la ficha seguia pintando el rango viejo despues de
+   * guardar uno nuevo. Se filtra aqui para que ningun consumidor tenga que acordarse.
+   */
+  async umbrales(idPaciente: number): Promise<UmbralDTO[]> {
+    const todos = await firstValueFrom(
+      this.http.get<UmbralDTO[]>(`${this.apiUrl}/umbrales`, { params: { idPaciente } })
+    );
+    return todos.filter((u) => u.vigente === 1);
   }
 
   /**

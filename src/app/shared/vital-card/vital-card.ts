@@ -8,7 +8,7 @@ import {
   lucideThermometer,
   lucideWind,
 } from '@ng-icons/lucide';
-import { definicionSigno, EstadoSigno, LecturaDTO } from '../../core/models/consultas.dto';
+import { definicionSigno, EstadoSigno, LecturaDTO, limitesEfectivos } from '../../core/models/consultas.dto';
 import { UmbralDTO } from '../../core/models/umbral.dto';
 
 const ESTADO_COPY: Record<EstadoSigno, { etiqueta: string }> = {
@@ -88,8 +88,8 @@ export class VitalCard {
   });
 
   rango = computed(() => {
-    const u = this.umbral();
-    return u ? { min: u.valorMin, max: u.valorMax } : this.definicion().rangoDefault;
+    const l = limitesEfectivos(this.lectura().signoCodigo, this.umbral());
+    return { min: l.min, max: l.max };
   });
 
   estado = computed<EstadoSigno>(() => {
@@ -101,16 +101,10 @@ export class VitalCard {
     const propio = this.definicion().estadoDe;
     if (propio) return propio(valor);
 
-    if (u) {
-      if (valor < u.valorMinCritico || valor > u.valorMaxCritico) return 'critico';
-      if (valor < u.valorMin || valor > u.valorMax) return 'alerta';
-      return 'ok';
-    }
-
-    const { min, max } = this.definicion().rangoDefault;
-    const margen = this.definicion().margenDefault;
-    if (valor < min || valor > max) return 'critico';
-    if (valor <= min + margen || valor >= max - margen) return 'alerta';
+    // Cada limite cae a su valor por defecto si el umbral no lo define.
+    const l = limitesEfectivos(this.lectura().signoCodigo, u);
+    if (valor < l.minCritico || valor > l.maxCritico) return 'critico';
+    if (valor < l.min || valor > l.max) return 'alerta';
     return 'ok';
   });
 
