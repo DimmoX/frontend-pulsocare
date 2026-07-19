@@ -17,21 +17,16 @@ import {
 import { AdminStore } from '../../admin/admin-store';
 import { AuthStore } from '../../../core/services/auth.store';
 import { ConsultasService } from '../../../core/services/consultas.service';
-import { definicionSigno, EstadoSigno, LecturaDTO } from '../../../core/models/consultas.dto';
+import {
+  definicionSigno,
+  EstadoSigno,
+  LecturaDTO,
+  SIGNOS_MONITOREADOS as SIGNOS,
+} from '../../../core/models/consultas.dto';
 import { UmbralDTO } from '../../../core/models/umbral.dto';
 // El paquete no expone una raiz: hay una build por entorno y esta es la del navegador.
 import escribirExcel from 'write-excel-file/browser';
 import { Topbar } from '../../../shared/topbar/topbar';
-
-/** Signos que ofrece el filtro; el id coincide con PC_SIGNO_VITAL.ID_SIGNO_VITAL. */
-const SIGNOS = [
-  { id: 1, codigo: 'FC' },
-  { id: 2, codigo: 'SPO2' },
-  { id: 3, codigo: 'PAS' },
-  { id: 4, codigo: 'PAD' },
-  { id: 5, codigo: 'TEMP' },
-  { id: 6, codigo: 'FR' },
-];
 
 const ESTADO_COPY: Record<EstadoSigno, string> = {
   ok: 'Normal',

@@ -81,6 +81,44 @@ export class ConsultasService {
   }
 
   /**
+   * Define o ajusta los limites de alarma de un signo para un paciente.
+   *
+   * idDefinidoPor no es opcional: el backend lo exige porque cada cambio queda en la
+   * bitacora, y un ajuste de alarma sin responsable identificado no es auditable.
+   */
+  crearUmbral(umbral: {
+    idPaciente: number;
+    idSignoVital: number;
+    valorMin: number | null;
+    valorMax: number | null;
+    valorMinCritico: number | null;
+    valorMaxCritico: number | null;
+    idDefinidoPor: number;
+  }): Promise<UmbralDTO> {
+    return firstValueFrom(this.http.post<UmbralDTO>(`${this.apiUrl}/umbrales`, umbral));
+  }
+
+  actualizarUmbral(
+    idUmbral: number,
+    cambios: {
+      valorMin: number | null;
+      valorMax: number | null;
+      valorMinCritico: number | null;
+      valorMaxCritico: number | null;
+      idDefinidoPor: number;
+    }
+  ): Promise<UmbralDTO> {
+    return firstValueFrom(this.http.put<UmbralDTO>(`${this.apiUrl}/umbrales/${idUmbral}`, cambios));
+  }
+
+  /** Baja logica: el signo vuelve a su rango por defecto. */
+  eliminarUmbral(idUmbral: number, idUsuario: number): Promise<void> {
+    return firstValueFrom(
+      this.http.delete<void>(`${this.apiUrl}/umbrales/${idUmbral}`, { params: { idUsuario } })
+    );
+  }
+
+  /**
    * Escala de alerta temprana NEWS2 del paciente, calculada en el backend a partir de
    * sus últimas lecturas. Es una señal de apoyo para el médico, no un diagnóstico.
    */

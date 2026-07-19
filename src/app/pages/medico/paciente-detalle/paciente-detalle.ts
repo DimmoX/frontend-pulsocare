@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideBedSingle, lucideHistory } from '@ng-icons/lucide';
+import { lucideBedSingle, lucideHistory, lucideSlidersHorizontal } from '@ng-icons/lucide';
 import { AdminStore } from '../../admin/admin-store';
 import { AuthStore } from '../../../core/services/auth.store';
 import { estaDadoDeAlta, PacienteDTO } from '../../../core/models/paciente.dto';
@@ -14,7 +14,7 @@ import { News2Panel } from '../../../shared/news2-panel/news2-panel';
 @Component({
   selector: 'app-paciente-detalle',
   imports: [Topbar, VitalsBoard, NgIcon, News2Panel],
-  viewProviders: [provideIcons({ lucideHistory, lucideBedSingle })],
+  viewProviders: [provideIcons({ lucideHistory, lucideBedSingle, lucideSlidersHorizontal })],
   template: `
     @if (paciente(); as p) {
       <app-topbar
@@ -52,6 +52,15 @@ import { News2Panel } from '../../../shared/news2-panel/news2-panel';
           >
             <ng-icon name="lucideHistory" size="14" />
             Ver histórico de lecturas
+          </button>
+          <button
+            acciones
+            type="button"
+            (click)="configurarUmbrales(p.idPaciente)"
+            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)] text-[var(--color-primary)] font-semibold text-xs cursor-pointer transition-colors hover:border-[var(--color-primary)]/40 whitespace-nowrap"
+          >
+            <ng-icon name="lucideSlidersHorizontal" size="14" />
+            Límites de alarma
           </button>
         </app-vitals-board>
       </main>
@@ -106,6 +115,10 @@ export class PacienteDetalle implements OnInit {
 
   verHistorico(idPaciente: number) {
     this.router.navigateByUrl(`/medico/pacientes/${idPaciente}/historico`);
+  }
+
+  configurarUmbrales(idPaciente: number) {
+    this.router.navigateByUrl(`/medico/pacientes/${idPaciente}/umbrales`);
   }
 
   cerrarSesion() {

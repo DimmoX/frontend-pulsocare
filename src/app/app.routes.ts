@@ -10,6 +10,7 @@ import { SignosVitalesFamiliar } from './pages/familiar/signos-vitales/signos-vi
 import { Pacientes } from './pages/medico/pacientes/pacientes';
 import { PacienteDetalle } from './pages/medico/paciente-detalle/paciente-detalle';
 import { Historico } from './pages/medico/historico/historico';
+import { Umbrales } from './pages/medico/umbrales/umbrales';
 
 export const routes: Routes = [
   { path: '', component: Login },
@@ -31,7 +32,8 @@ export const routes: Routes = [
       { path: '', redirectTo: 'pacientes', pathMatch: 'full' },
       { path: 'pacientes', component: Pacientes },
       { path: 'pacientes/:id', component: PacienteDetalle },
-      { path: 'pacientes/:id/historico', component: Historico }
+      { path: 'pacientes/:id/historico', component: Historico },
+      { path: 'pacientes/:id/umbrales', component: Umbrales }
     ]
   },
   {

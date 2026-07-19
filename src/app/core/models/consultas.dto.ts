@@ -80,6 +80,22 @@ const CATALOGO_SIGNOS: Record<string, DefinicionSigno> = {
   },
 };
 
+/**
+ * Signos monitoreados, con el id que tienen en PC_SIGNO_VITAL. Vive aqui y no en cada
+ * vista porque el filtro del historico y la configuracion de umbrales necesitan el
+ * mismo mapeo, y tenerlo duplicado ya dejo fuera a GCS y O2SUP de uno de los dos.
+ */
+export const SIGNOS_MONITOREADOS: { id: number; codigo: string }[] = [
+  { id: 1, codigo: 'FC' },
+  { id: 2, codigo: 'SPO2' },
+  { id: 3, codigo: 'PAS' },
+  { id: 4, codigo: 'PAD' },
+  { id: 5, codigo: 'TEMP' },
+  { id: 6, codigo: 'FR' },
+  { id: 21, codigo: 'GCS' },
+  { id: 22, codigo: 'O2SUP' },
+];
+
 export function definicionSigno(signoCodigo: string): DefinicionSigno {
   return (
     CATALOGO_SIGNOS[signoCodigo] ?? {
