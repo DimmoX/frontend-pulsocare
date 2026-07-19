@@ -21,12 +21,11 @@ export interface PuntajeNews2DTO {
 }
 
 /** Parámetros que evalúa NEWS2 (la presión diastólica no forma parte de la escala). */
-export const PARAMETROS_NEWS2 = 5;
+export const PARAMETROS_NEWS2 = 7;
 
 /**
- * Puntaje máximo de la escala NEWS2 publicada, que evalúa 7 parámetros. Se usa como
- * denominador fijo aunque PulsoCare capte 5: quien conoce la escala espera ver el
- * total contra 20, y un denominador que cambiara según los signos disponibles haría
- * incomparables dos lecturas del mismo paciente.
+ * Puntaje máximo de la escala NEWS2, que evalúa 7 parámetros. Es un denominador fijo:
+ * uno que cambiara según los signos disponibles en cada momento haría incomparables
+ * dos lecturas del mismo paciente.
  */
 export const MAXIMO_NEWS2 = 20;

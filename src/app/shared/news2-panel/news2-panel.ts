@@ -3,7 +3,13 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideActivity, lucideInfo, lucideTriangleAlert } from '@ng-icons/lucide';
 import { ConsultasService } from '../../core/services/consultas.service';
 import { definicionSigno } from '../../core/models/consultas.dto';
-import { MAXIMO_NEWS2, NivelRiesgoNews2, PARAMETROS_NEWS2, PuntajeNews2DTO } from '../../core/models/news2.dto';
+import {
+  MAXIMO_NEWS2,
+  NivelRiesgoNews2,
+  PARAMETROS_NEWS2,
+  PuntajeNews2DTO,
+  PuntajeSignoDTO,
+} from '../../core/models/news2.dto';
 
 /** Mismo intervalo que los signos vitales, para que el puntaje no quede desfasado. */
 const INTERVALO_REFRESCO_MS = 8000;
@@ -92,7 +98,7 @@ const CLASES: Record<NivelRiesgoNews2, { borde: string; chip: string; numero: st
               <div class="flex items-center justify-between gap-3 text-xs">
                 <span class="text-[var(--color-ink)]">{{ etiqueta(s.signoCodigo) }}</span>
                 <span class="font-mono font-semibold text-[var(--color-ink-soft)]">
-                  {{ s.valor }} · +{{ s.puntos }}
+                  {{ valorLegible(s) }} · +{{ s.puntos }}
                 </span>
               </div>
             }
@@ -129,10 +135,10 @@ export class News2Panel {
   );
 
   /**
-   * El puntaje siempre se muestra sobre 20, el máximo de la escala publicada, pero se
-   * calcula con menos parámetros: PulsoCare no capta nivel de conciencia ni oxígeno
-   * suplementario, y un paciente puede además no tener lectura de algún signo. Decirlo
-   * evita que un total bajo se lea como "estable" cuando en realidad está incompleto.
+   * El puntaje se muestra siempre sobre 20, pero un paciente puede no tener lectura de
+   * algún parámetro (la temperatura y el Glasgow se miden cada varias horas, no en
+   * continuo). Decir sobre cuántos se calculó evita que un total bajo se lea como
+   * "estable" cuando en realidad está incompleto.
    */
   notaAlcance = computed(() => {
     const medidos = this.puntaje()?.detalle.length ?? 0;
@@ -158,6 +164,14 @@ export class News2Panel {
 
   etiqueta(codigo: string): string {
     return definicionSigno(codigo).etiqueta;
+  }
+
+  /** Mismo formato que la tarjeta: "Sí" dice mas que un 1 suelto. */
+  valorLegible(s: PuntajeSignoDTO): string {
+    const formato = definicionSigno(s.signoCodigo).formatoValor;
+    if (!formato) return String(s.valor);
+    const { valor, unidad } = formato(s.valor);
+    return unidad ? `${valor} ${unidad}` : valor;
   }
 
   /**
