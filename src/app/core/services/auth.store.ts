@@ -21,6 +21,13 @@ export class AuthStore {
 
   /** null hasta que se complete el primer login de la sesión. */
   usuario = signal<UsuarioDTO | null>(null);
+
+  /**
+   * Por qué se rechazó la sesión, para poder decírselo al usuario. Sin esto, una
+   * cuenta desactivada volvía al inicio sin explicación y parecía que el botón de
+   * ingresar no funcionaba.
+   */
+  motivoRechazo = signal<string | null>(null);
   rolClave = computed<RolClave | null>(() => claveDesdeNombreRol(this.usuario()?.rol));
   estaSincronizado = computed(() => this.usuario() !== null);
 
@@ -37,8 +44,6 @@ export class AuthStore {
       entraOid: claims.oid ?? claims.sub,
       idRol: ROL_A_ID_ROL[rolClave],
     };
-
-    console.log('Sincronizando con backend (payload): ', payload);
 
     const usuario = await firstValueFrom(
       this.http.post<UsuarioDTO>(`${this.apiUrl}/auth/registro`, payload)

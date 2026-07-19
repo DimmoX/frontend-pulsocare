@@ -29,7 +29,14 @@ export function rolGuard(rolesPermitidos: RolClave[]): CanActivateFn {
       try {
         await authStore.sincronizarConBackend(cuenta.idTokenClaims as any);
       } catch (error) {
-        console.error('No se pudo sincronizar con el backend al validar el rol:', error);
+        // Mismo criterio que app.ts: si el backend rechaza la cuenta, se explica el
+        // motivo en el inicio en vez de devolver al usuario en silencio.
+        const estado = (error as { status?: number })?.status;
+        authStore.motivoRechazo.set(
+          estado === 403
+            ? 'Tu cuenta está desactivada. Comunícate con el administrador de la plataforma.'
+            : 'No se pudo validar tu sesión. Inténtalo de nuevo en unos minutos.'
+        );
         return router.parseUrl('/');
       }
     }
