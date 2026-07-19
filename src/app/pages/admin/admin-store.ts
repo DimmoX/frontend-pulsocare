@@ -65,11 +65,13 @@ export class AdminStore {
 
   async crearUsuario(input: NuevoUsuarioInput): Promise<{ usuario: UsuarioDTO; passwordTemporal: string }> {
     try {
-      const passwordTemporal = crypto.randomUUID();
+      // Este valor NO es la contrasena con la que el usuario entrara: ms-auth lo usa
+      // solo para el hash local. Quien crea la cuenta en B2C es el backend, y la
+      // contrasena real viene en la respuesta.
       const payload = {
         displayName: input.nombreCompleto,
         correo: input.correo,
-        pass: passwordTemporal,
+        pass: crypto.randomUUID(),
         idRol: ROL_A_ID_ROL[input.tipo],
         idParentesco: input.tipo == 'FAMILIAR' ? input.idParentesco : undefined
       }
@@ -77,7 +79,10 @@ export class AdminStore {
         this.http.post<UsuarioDTO>(`${this.apiUrl}/auth/registro`, payload)
       );
       this.usuarios.update((lista) => [nuevoUsuario, ...lista]);
-      return { usuario: nuevoUsuario, passwordTemporal };
+      // La contrasena que se le muestra al admin es la que el backend creo en B2C.
+      // Antes se mostraba el UUID de arriba, que nunca llego a B2C: el admin la
+      // copiaba, el usuario la escribia y B2C respondia "contrasena incorrecta".
+      return { usuario: nuevoUsuario, passwordTemporal: nuevoUsuario.passwordTemporal ?? '' };
     } catch (error) {
       console.error('Error al crear usuario en Spring Boot: ', error);
       throw error;
