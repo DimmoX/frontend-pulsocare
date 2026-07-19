@@ -6,6 +6,7 @@ import { lucideHeartPulse, lucideLock, lucideMail, lucideTriangleAlert } from '@
 import { EcgTrace } from '../../shared/ecg-trace/ecg-trace';
 import { MsalService } from '@azure/msal-angular';
 import { AuthStore } from '../../core/services/auth.store';
+import { SCOPE_API } from '../../app.config';
 
 @Component({
   selector: 'app-login',
@@ -73,6 +74,9 @@ export class Login {
     // Se limpia antes de reintentar: el aviso es de la sesión anterior y dejarlo
     // visible durante el nuevo intento haría creer que volvió a fallar.
     this.authStore.motivoRechazo.set(null);
-    this.authService.loginRedirect();
+    // Los scopes van explicitos: loginRedirect() a secas NO aplica el authRequest de
+    // la configuracion (eso solo lo hace MsalGuard al proteger rutas), asi que sin
+    // esto B2C emite solo el idToken y las llamadas al backend salen sin token.
+    this.authService.loginRedirect({ scopes: ['openid', 'profile', SCOPE_API] });
   }
 }
