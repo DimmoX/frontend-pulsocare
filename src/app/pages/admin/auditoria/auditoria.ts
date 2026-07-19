@@ -6,14 +6,22 @@ import { Topbar } from '../../../shared/topbar/topbar';
 import { AdminTabs } from '../admin-tabs/admin-tabs';
 import { AdminStore } from '../admin-store';
 import { EventoBitacoraDTO } from '../../../core/models/bitacora.dto';
+import { definicionSigno, SIGNOS_MONITOREADOS } from '../../../core/models/consultas.dto';
 
 /** Etiqueta legible para cada acción registrada; si aparece una nueva, se muestra tal cual. */
 const ACCION_TEXTO: Record<string, string> = {
   VER_HISTORICO: 'Histórico de signos vitales',
   VER_PACIENTE: 'Vio el paciente',
-  EDITAR_UMBRAL: 'Editó un umbral',
+  CREAR_UMBRAL: 'Definió un límite de alarma',
+  EDITAR_UMBRAL: 'Editó un límite de alarma',
+  ELIMINAR_UMBRAL: 'Restauró un límite por defecto',
   LOGIN: 'Inició sesión',
 };
+
+/** id de PC_SIGNO_VITAL -> nombre legible, para traducir el detalle de la bitácora. */
+const NOMBRE_POR_ID = new Map(
+  SIGNOS_MONITOREADOS.map(({ id, codigo }) => [id, definicionSigno(codigo).etiqueta])
+);
 
 @Component({
   selector: 'app-auditoria',
@@ -81,7 +89,12 @@ const ACCION_TEXTO: Record<string, string> = {
                       <span class="text-[var(--color-ink)]">{{ e.usuario }}</span>
                       <span class="text-xs text-[var(--color-ink-soft)]"> · {{ e.rol }}</span>
                     </td>
-                    <td class="px-5 py-3 text-[var(--color-ink)]">{{ accionTexto(e.accion) }}</td>
+                    <td class="px-5 py-3 text-[var(--color-ink)]">
+                      <div>{{ accionTexto(e.accion) }}</div>
+                      @if (detalleLegible(e.detalle); as d) {
+                        <div class="mt-0.5 text-xs text-[var(--color-ink-soft)]">{{ d }}</div>
+                      }
+                    </td>
                     <td class="px-5 py-3 text-[var(--color-ink)]">{{ e.paciente ?? '—' }}</td>
                   </tr>
                 }
@@ -120,6 +133,20 @@ export class Auditoria implements OnInit {
 
   accionTexto(accion: string): string {
     return ACCION_TEXTO[accion] ?? accion;
+  }
+
+  /**
+   * El detalle que guarda el backend identifica el signo por su id ("Signo 1: ..."),
+   * que no le dice nada a quien audita. Aquí se traduce al nombre; si aparece un id
+   * desconocido se deja tal cual, porque en una bitácora es preferible mostrar el
+   * registro crudo antes que ocultarlo.
+   */
+  detalleLegible(detalle: string | null): string {
+    if (!detalle) return '';
+    return detalle.replace(
+      /Signo (\d+)/g,
+      (original, id) => NOMBRE_POR_ID.get(Number(id)) ?? original
+    );
   }
 
   /** La base guarda en UTC ("...Z"); se muestra en la hora local del administrador. */

@@ -48,14 +48,30 @@ interface FilaUmbral {
       <main class="max-w-6xl mx-auto p-7 flex flex-col gap-5">
         <div class="flex items-start gap-2.5 p-4 px-5 rounded-2xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)] text-sm text-[var(--color-ink-soft)]">
           <ng-icon name="lucideInfo" size="18" class="mt-0.5 shrink-0" />
-          <span>
-            Los valores por defecto son rangos de referencia poblacionales y no aplican a
-            todos los pacientes: alguien con EPOC vive con una saturación de 88–92, y
-            alarmar bajo 95 solo genera avisos que nadie atiende. Ajustar estos límites
-            cambia cuándo se genera una alerta,
-            <strong class="text-[var(--color-ink)]">queda registrado en la bitácora a tu nombre</strong>
-            y se aplica al monitoreo en el minuto siguiente.
-          </span>
+          <div class="flex flex-col gap-2">
+            <p class="m-0">
+              <strong class="text-[var(--color-ink)]">Valores por defecto.</strong>
+              Cada signo usa los rangos de referencia del catálogo de signos vitales de
+              la plataforma, pensados para población adulta general. Bajo el nombre de
+              cada signo se indica si este paciente los está usando o si tiene límites
+              propios, junto al rango por defecto del que se aparta.
+            </p>
+            <p class="m-0">
+              <strong class="text-[var(--color-ink)]">Cómo cambiar un límite.</strong>
+              Edita los campos Mín. normal, Máx. normal, Mín. crítico o Máx. crítico de
+              la fila y presiona <strong class="text-[var(--color-ink)]">Guardar</strong>
+              en esa misma fila. El cambio no se aplica hasta presionar Guardar, y el
+              monitoreo lo toma dentro del minuto siguiente.
+            </p>
+            <p class="m-0">
+              <strong class="text-[var(--color-ink)]">Cómo volver al valor por defecto.</strong>
+              Deja el campo vacío y guarda para que ese límite vuelva al valor por
+              defecto, o presiona el botón
+              <ng-icon name="lucideRotateCcw" size="13" class="align-middle" />
+              de la fila para devolver el signo completo a sus rangos por defecto. Ese
+              botón aparece solo cuando el signo tiene límites propios.
+            </p>
+          </div>
         </div>
 
         @if (cargando()) {
