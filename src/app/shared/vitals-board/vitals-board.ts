@@ -2,7 +2,7 @@ import { Component, computed, effect, inject, input, signal } from '@angular/cor
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCheck, lucideClock4, lucideUserRound } from '@ng-icons/lucide';
 import { ConsultasService } from '../../core/services/consultas.service';
-import { AlertaDTO, definicionSigno, EstadoSigno, LecturaDTO } from '../../core/models/consultas.dto';
+import { AlertaDTO, definicionSigno, EstadoSigno, LecturaDTO, limitesEfectivos } from '../../core/models/consultas.dto';
 import { UmbralDTO } from '../../core/models/umbral.dto';
 import { PacienteDTO, edadDesdeFechaNacimiento } from '../../core/models/paciente.dto';
 import { VitalCard } from '../vital-card/vital-card';
@@ -118,16 +118,9 @@ export class VitalsBoard {
     const propio = definicionSigno(lectura.signoCodigo).estadoDe;
     if (propio) return propio(valor);
 
-    if (u) {
-      if (valor < u.valorMinCritico || valor > u.valorMaxCritico) return 'critico';
-      if (valor < u.valorMin || valor > u.valorMax) return 'alerta';
-      return 'ok';
-    }
-
-    const { min, max } = definicionSigno(lectura.signoCodigo).rangoDefault;
-    const margen = definicionSigno(lectura.signoCodigo).margenDefault;
-    if (valor < min || valor > max) return 'critico';
-    if (valor <= min + margen || valor >= max - margen) return 'alerta';
+    const l = limitesEfectivos(lectura.signoCodigo, u);
+    if (valor < l.minCritico || valor > l.maxCritico) return 'critico';
+    if (valor < l.min || valor > l.max) return 'alerta';
     return 'ok';
   }
 
